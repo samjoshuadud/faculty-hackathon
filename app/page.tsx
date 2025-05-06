@@ -2,8 +2,11 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import {useSession, signIn} from "next-auth/react";
+
 
 export default function Home() {
+  const {data: session, status} = useSession();
   return (
     <main className="min-h-screen flex flex-col justify-between">
       <section className="relative flex flex-col-reverse md:flex-row items-center justify-between px-10 md:px-28 py-20 gap-10 bg-[#081C15]">
