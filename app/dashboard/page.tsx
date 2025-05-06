@@ -33,7 +33,7 @@ export default function Home() {
     },
   ];
   return (
-    <main className="grid grid-cols-[auto_1fr] min-h-screen">
+    <main className="grid grid-cols-[auto_1fr] flex-grow">
       <div className="border-r-1 border-white/20 h-full p-8 w-68 font-bold text-[#95D5B2] flex justify-center">
         <ul className="flex flex-col w-full">
           {buttons.map((button, index) => (
@@ -46,7 +46,10 @@ export default function Home() {
           ))}
         </ul>
       </div>
-      <div></div>
+
+      <div>
+
+      </div>
     </main>
   );
 }

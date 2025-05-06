@@ -20,15 +20,17 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en h-full">
+    <html lang="en" className="h-full m-0">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen `}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col `}
       >
         <SessionProvider>
           <Header />
-          {children}
+          {/* Container for children */}
+          {children}        
         </SessionProvider>
       </body>
     </html>
   );
 }
+
