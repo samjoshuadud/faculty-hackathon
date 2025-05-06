@@ -17,6 +17,19 @@ import { motion } from "framer-motion";
 import { useState , useRef} from "react";
 import CertificationScanner from "../components/Scanner";
 
+// ...existing code...
+interface Document {
+  id: number;
+  title: string;
+  description: string;
+  fileName: string;
+  fileType: string;
+  fileSize: string;
+  uploadDate: string;
+  fileUrl: string;
+  tags: string[];
+}
+
 interface Education {
   id: number;
   degree: string;
@@ -73,6 +86,12 @@ export default function Home() {
 
   const [autoFillingFields, setAutoFillingFields] = useState(false);
 
+  const [isDocModalOpen, setIsDocModalOpen] = useState(false);
+  const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
+  const [documentFile, setDocumentFile] = useState<File | null>(null);
+  const documentFileRef = useRef<HTMLInputElement>(null);
+  
+
 
 
   const { data: session, status } = useSession();
@@ -105,11 +124,425 @@ export default function Home() {
       value: "certifications",
     },
     {
-      name: "Events",
-      icon: <CalendarSearch size={18} />,
-      value: "events",
+      name: "Documents",
+      icon: <FileText size={18} />,
+      value: "documents",
     },
+ 
   ];
+
+
+const documentsData: Document[] = [
+  {
+    id: 1,
+    title: "Research Publication: AI in Education",
+    description: "Published research paper on artificial intelligence applications in educational settings",
+    fileName: "ai-education-research.pdf",
+    fileType: "PDF",
+    fileSize: "2.4 MB",
+    uploadDate: "2025-02-15",
+    fileUrl: "https://example.com/documents/ai-research.pdf",
+    tags: ["Research", "AI", "Education"]
+  },
+  {
+    id: 2,
+    title: "Course Syllabus: Advanced Database Systems",
+    description: "Course outline and requirements for CS461 Advanced Database Systems",
+    fileName: "cs461-syllabus-2025.docx",
+    fileType: "Word",
+    fileSize: "1.1 MB",
+    uploadDate: "2025-01-10",
+    fileUrl: "https://example.com/documents/db-syllabus.docx",
+    tags: ["Syllabus", "Teaching", "Database"]
+  },
+  {
+    id: 3,
+    title: "Conference Presentation - SIGCSE 2025",
+    description: "Slides from keynote presentation on modern teaching methodologies",
+    fileName: "sigcse-presentation.pptx",
+    fileType: "PowerPoint",
+    fileSize: "5.7 MB",
+    uploadDate: "2025-03-22",
+    fileUrl: "https://example.com/documents/conference-slides.pptx",
+    tags: ["Conference", "Presentation", "Teaching"]
+  },
+  {
+    id: 4,
+    title: "Department Meeting Minutes",
+    description: "Minutes from the quarterly department planning meeting",
+    fileName: "meeting-minutes-jan2025.pdf",
+    fileType: "PDF",
+    fileSize: "0.8 MB",
+    uploadDate: "2025-01-25",
+    fileUrl: "https://example.com/documents/minutes.pdf",
+    tags: ["Administrative", "Meeting", "Planning"]
+  }
+];
+
+// ...existing code...
+
+const handleEditDocument = (document: Document) => {
+  setSelectedDocument(document);
+  setIsDocModalOpen(true);
+};
+
+const handleAddNewDocument = () => {
+  setSelectedDocument(null);
+  setDocumentFile(null);
+  setIsDocModalOpen(true);
+};
+
+const closeDocModal = () => {
+  setIsDocModalOpen(false);
+  setDocumentFile(null);
+};
+
+const handleDocumentUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const file = e.target.files?.[0];
+  if (file) {
+    setDocumentFile(file);
+  }
+};
+
+const triggerDocumentFileInput = () => {
+  documentFileRef.current?.click();
+};
+
+const getFileIcon = (fileType: string) => {
+  switch(fileType.toLowerCase()) {
+    case 'pdf':
+      return (
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[#FF5252]">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+          <polyline points="14 2 14 8 20 8"></polyline>
+          <path d="M9 15v-2h6v2"></path>
+          <path d="M11 11v6"></path>
+          <path d="M9 11h4"></path>
+        </svg>
+      );
+    case 'word':
+    case 'docx':
+    case 'doc':
+      return (
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[#4285F4]">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+          <polyline points="14 2 14 8 20 8"></polyline>
+          <path d="M16 13H8"></path>
+          <path d="M16 17H8"></path>
+          <path d="M10 9H8"></path>
+        </svg>
+      );
+    case 'powerpoint':
+    case 'pptx':
+    case 'ppt':
+      return (
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[#FF8A65]">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+          <polyline points="14 2 14 8 20 8"></polyline>
+          <path d="M9 13h6"></path>
+          <path d="M9 17h6"></path>
+          <path d="M9 9h1"></path>
+        </svg>
+      );
+    case 'image':
+    case 'jpg':
+    case 'jpeg':
+    case 'png':
+      return (
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[#4CAF50]">
+          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+          <circle cx="8.5" cy="8.5" r="1.5"></circle>
+          <polyline points="21 15 16 10 5 21"></polyline>
+        </svg>
+      );
+    default:
+      return (
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+          <polyline points="14 2 14 8 20 8"></polyline>
+          <line x1="16" y1="13" x2="8" y2="13"></line>
+          <line x1="16" y1="17" x2="8" y2="17"></line>
+          <polyline points="10 9 9 9 8 9"></polyline>
+        </svg>
+      );
+  }
+};
+
+// ...existing code...
+
+const documentsSection = () => {
+  return (
+    <>
+      <motion.header
+        className="flex items-center justify-between px-6 py-4 border-b border-[#1B4332]"
+        initial={{ y: -20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.5 }}
+      >
+        <h1 className="text-[#95D5B2] text-xl font-medium">My Documents</h1>
+        <motion.button
+          className="inline-flex items-center gap-2 bg-[#95D5B2] text-[#081C15] px-4 py-2 rounded-md text-sm font-medium"
+          whileHover={{
+            y: -2,
+            boxShadow: "0 10px 15px -3px rgba(149, 213, 178, 0.2)",
+          }}
+          transition={{ type: "spring", stiffness: 300 }}
+          onClick={handleAddNewDocument}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 5v14M5 12h14"/>
+          </svg>
+          Upload Document
+        </motion.button>
+      </motion.header>
+
+      {/* Main content area */}
+      <motion.div
+        className="p-6"
+        variants={containerVariants}
+        initial="hidden"
+        animate="show"
+      >
+        <div className="grid grid-cols-1 gap-6">
+          {documentsData.map((doc) => (
+            <motion.div
+              key={doc.id}
+              className="bg-[#1B4332] rounded-lg p-5 shadow-sm"
+              variants={itemVariants}
+              whileHover={{ boxShadow: "0 4px 20px rgba(149, 213, 178, 0.1)" }}
+            >
+              <div className="flex justify-between items-start">
+                <div className="flex-1">
+                  <div className="flex items-center gap-3">
+                    <div className="flex-shrink-0">
+                      {getFileIcon(doc.fileType)}
+                    </div>
+                    <div>
+                      <h2 className="text-white font-medium text-lg">{doc.title}</h2>
+                      <p className="text-sm text-[#95D5B2]">{doc.description}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-3 grid grid-cols-2 md:grid-cols-3 gap-y-2 text-sm">
+                    <div className="flex items-center">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[#95D5B2] mr-2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                      </svg>
+                      <span className="text-[#95D5B2]">{doc.fileName}</span>
+                    </div>
+                    
+                    <div className="flex items-center">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[#95D5B2] mr-2">
+                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                        <polyline points="15 3 21 3 21 9"></polyline>
+                        <line x1="10" y1="14" x2="21" y2="3"></line>
+                      </svg>
+                      <span className="text-[#95D5B2]">{doc.fileSize}</span>
+                    </div>
+                    
+                    <div className="flex items-center">
+                      <CalendarSearch size={14} className="text-[#95D5B2] mr-2" />
+                      <span className="text-[#95D5B2]">
+                        {new Date(doc.uploadDate).toLocaleDateString()}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  {doc.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-3">
+                      {doc.tags.map((tag, index) => (
+                        <span 
+                          key={index} 
+                          className="bg-[#2D6A4F] text-[#95D5B2] text-xs py-0.5 px-2 rounded-full"
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                
+                <div className="flex ml-4">
+                  <motion.a
+                    href={doc.fileUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="bg-[#2D6A4F] hover:bg-[#3B8F6F] text-white p-2 rounded-md mr-2"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                      <polyline points="7 10 12 15 17 10"></polyline>
+                      <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                  </motion.a>
+                  <motion.button
+                    className="bg-[#2D6A4F] hover:bg-[#3B8F6F] text-white p-2 rounded-md"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => handleEditDocument(doc)}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path>
+                      <path d="m15 5 4 4"></path>
+                    </svg>
+                  </motion.button>
+                </div>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      </motion.div>
+
+      {/* Document Upload/Edit Modal */}
+      {isDocModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <motion.div 
+            className="bg-[#1B4332] rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto custom-scrollbar"  
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: "spring", stiffness: 300 }}
+          >
+            <div className="p-6 border-b border-[#2D6A4F] sticky top-0 bg-[#1B4332] z-10">
+              <h2 className="text-white text-xl font-medium">
+                {selectedDocument ? "Edit Document Details" : "Upload New Document"}
+              </h2>
+            </div>
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-6 pt-4">
+              <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
+                {!selectedDocument && (
+                  <div className="flex flex-col items-center border-2 border-dashed border-[#3B8F6F] rounded-md p-8 mb-6">
+                    <input
+                      type="file"
+                      ref={documentFileRef}
+                      onChange={handleDocumentUpload}
+                      accept=".pdf,.doc,.docx,.ppt,.pptx,.jpg,.jpeg,.png,.gif,.txt,.xls,.xlsx"
+                      className="hidden"
+                    />
+                    
+                    {!documentFile ? (
+                      <>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#95D5B2" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                          <polyline points="14 2 14 8 20 8"></polyline>
+                          <path d="M12 12v6"></path>
+                          <path d="M9 15h6"></path>
+                        </svg>
+                        <motion.button
+                          type="button"
+                          className="mt-4 flex items-center gap-2 bg-[#1B4332] text-white px-4 py-2 rounded-md text-sm"
+                          whileHover={{ scale: 1.02, backgroundColor: "#3B8F6F" }}
+                          whileTap={{ scale: 0.98 }}
+                          onClick={triggerDocumentFileInput}
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="17 8 12 3 7 8"></polyline>
+                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                          </svg>
+                          Choose File
+                        </motion.button>
+                        <p className="text-xs text-[#95D5B2] mt-2 text-center">
+                          Supports: PDF, Word, PowerPoint, Excel, Images, Text files<br/>
+                          Maximum size: 20MB
+                        </p>
+                      </>
+                    ) : (
+                      <div className="flex flex-col items-center">
+                        {documentFile.type.includes('image') ? (
+                          <div className="h-48 w-48 relative mb-4">
+                            <img 
+                              src={URL.createObjectURL(documentFile)} 
+                              alt="Document preview" 
+                              className="h-full w-full object-contain"
+                            />
+                          </div>
+                        ) : (
+                          <div className="h-24 w-24 flex items-center justify-center mb-4">
+                            {getFileIcon(documentFile.name.split('.').pop() || '')}
+                          </div>
+                        )}
+                        <p className="text-white mb-1">{documentFile.name}</p>
+                        <p className="text-[#95D5B2] text-sm mb-3">
+                          {(documentFile.size / (1024 * 1024)).toFixed(2)} MB
+                        </p>
+                        <motion.button
+                          type="button"
+                          className="flex items-center gap-2 bg-[#081C15] text-[#95D5B2] px-3 py-1 rounded-md text-sm"
+                          whileHover={{ scale: 1.02, backgroundColor: "#0a241c" }}
+                          whileTap={{ scale: 0.98 }}
+                          onClick={() => setDocumentFile(null)}
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M18 6 6 18M6 6l12 12"/>
+                          </svg>
+                          Change File
+                        </motion.button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 gap-4">
+                  <div>
+                    <label className="block text-[#95D5B2] text-sm mb-1">Document Title</label>
+                    <input 
+                      type="text" 
+                      className="w-full bg-[#2D6A4F] text-white rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-[#95D5B2]"
+                      defaultValue={selectedDocument?.title || ""}
+                      placeholder="Enter a title for this document"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-[#95D5B2] text-sm mb-1">Description</label>
+                    <textarea 
+                      className="w-full bg-[#2D6A4F] text-white rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-[#95D5B2] min-h-[80px]"
+                      defaultValue={selectedDocument?.description || ""}
+                      placeholder="Describe the document contents and purpose"
+                    ></textarea>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-[#95D5B2] text-sm mb-1">Tags (comma separated)</label>
+                    <input 
+                      type="text" 
+                      className="w-full bg-[#2D6A4F] text-white rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-[#95D5B2]"
+                      defaultValue={selectedDocument?.tags.join(", ") || ""}
+                      placeholder="Research, Teaching, Administrative, etc."
+                    />
+                  </div>
+                </div>
+                
+                <div className="flex justify-end space-x-3 pt-4">
+                  <motion.button
+                    type="button"
+                    className="bg-[#081C15] text-white px-4 py-2 rounded-md"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={closeDocModal}
+                  >
+                    Cancel
+                  </motion.button>
+                  <motion.button
+                    type="submit"
+                    className="bg-[#95D5B2] text-[#081C15] px-4 py-2 rounded-md font-medium"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    {selectedDocument ? "Save Changes" : "Upload Document"}
+                  </motion.button>
+                </div>
+              </form>
+            </div>
+          </motion.div>
+        </div>
+      )}
+    </>
+  );
+};
 
   // Container animation variants
   const containerVariants = {
@@ -1356,8 +1789,8 @@ export default function Home() {
         return experiencesSection();
       case "certifications":
         return certificationsSection();
-      case "events":
-        return <LoadingScreen />;
+      case "documents":
+        return documentsSection();
       default:
         return mydashboard();
     }

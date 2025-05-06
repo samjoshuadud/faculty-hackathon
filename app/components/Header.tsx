@@ -12,6 +12,7 @@ import { signOut, useSession } from "next-auth/react";
 import { redirect } from "next/navigation";
 import LoadingScreen from "./LoadingScreen";
 
+
 export default function Header() {
   const { data: session, status } = useSession();
 
@@ -56,7 +57,7 @@ export default function Header() {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem asChild>
-                <Link href="/">Profile</Link>
+                <Link href="/profile">Profile</Link>
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => signOut({ callbackUrl: "/" })}>
                 Logout
