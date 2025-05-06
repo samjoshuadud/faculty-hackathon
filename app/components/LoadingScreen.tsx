@@ -1,7 +1,5 @@
-
-
 export default function LoadingScreen() {
-    return (
+  return (
     <>
       <div className=" flex items-center justify-center text-white h-full flex-grow">
         <div className="flex flex-col items-center space-y-4">
@@ -32,5 +30,4 @@ export default function LoadingScreen() {
       </div>
     </>
   );
-
 }
