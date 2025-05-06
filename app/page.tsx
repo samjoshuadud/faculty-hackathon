@@ -1,9 +1,24 @@
 "use client";
 import React, { useState } from "react";
 import Image from "next/image";
-import {signIn} from "next-auth/react"; 
+import {signIn, useSession} from "next-auth/react"; 
+import {redirect} from 'next/navigation';
+import LoadingScreen from './components/LoadingScreen';
+
 export default function Home() {
   const [showLogin, setShowLogin] = useState(false);
+  const {data: session, status} = useSession();
+  
+  if (status === 'loading') {
+    return <LoadingScreen />; 
+  }
+
+  if (session) {
+    redirect('/dashboard');
+    return null;
+  }
+
+
   return (
     <main className="">
       <section className="relative flex flex-col-reverse md:flex-row items-center justify-between px-10 md:px-28 py-20 gap-10 bg-[#081C15]">
