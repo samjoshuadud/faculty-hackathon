@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useState , useRef} from "react";
+import CertificationScanner from "../components/Scanner";
 
 interface Education {
   id: number;
@@ -67,6 +68,10 @@ export default function Home() {
   const [selectedCertification, setSelectedCertification] = useState<Certification | null>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [formData, setFormData] = useState<Partial<Certification>>({});
+
+  const [autoFillingFields, setAutoFillingFields] = useState(false);
 
 
 
@@ -177,18 +182,21 @@ export default function Home() {
   const handleEditCertification = (certification: Certification) => {
     setSelectedCertification(certification);
     setPreviewImage(certification.imageUrl || null);
+    setFormData(certification); // Initialize form data with selected certification
     setIsCertModalOpen(true);
   };
   
   const handleAddNewCertification = () => {
     setSelectedCertification(null);
     setPreviewImage(null);
+    setFormData({}); // Clear form data
     setIsCertModalOpen(true);
   };
   
   const closeCertModal = () => {
     setIsCertModalOpen(false);
     setPreviewImage(null);
+    setFormData({}); // Clear form data when closing modal
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -975,7 +983,54 @@ export default function Home() {
     );
   };
 
+  const formatDateForInput = (dateString: string | null | undefined): string => {
+    if (!dateString) return '';
+    
+    // Check if it's already in YYYY-MM-DD format
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) return dateString;
+    
+    // Convert from MM/DD/YYYY to YYYY-MM-DD
+    const parts = dateString.split('/');
+    if (parts.length === 3) {
+      const [month, day, year] = parts;
+      return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+    }
+    
+    return '';
+  };
+
   const certificationsSection = () => {
+    const handleScanResults = (results: {
+      name: string, 
+      expirationDate: string, 
+      issuingOrganization?: string,
+      credentialId?: string,
+      issueDate?: string
+    }) => {
+      console.log("Scan results:", results);
+      
+      // Show loading state
+      setAutoFillingFields(true);
+      
+      // Use setTimeout to give a visual indication that something is happening
+      setTimeout(() => {
+        setFormData(prevData => ({
+          ...prevData,
+          name: results.name || prevData.name,
+          expirationDate: formatDateForInput(results.expirationDate) || prevData.expirationDate,
+          issuingOrganization: results.issuingOrganization || prevData.issuingOrganization,
+          credentialId: results.credentialId || prevData.credentialId,
+          issueDate: formatDateForInput(results.issueDate) || prevData.issueDate,
+        }));
+        
+        // Hide loading state after data is updated
+        setAutoFillingFields(false);
+      }, 500); // Short delay to show loading animation
+    };
+
+    const handleImageChange = (imageUrl: string | null) => {
+      setPreviewImage(imageUrl);
+    };
     return (
       <>
         <motion.header
@@ -1117,73 +1172,37 @@ export default function Home() {
       </div>
       <div className="flex-1 overflow-y-auto custom-scrollbar p-6 pt-4">
 
+      <CertificationScanner 
+                onResultsChange={handleScanResults}
+                showPreview={true}
+                className="mb-6"
+              />
+
+{autoFillingFields && (
+  <div className="bg-[#2D6A4F] text-[#95D5B2] text-sm p-2 rounded-md mb-4 flex items-center">
+    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#95D5B2] mr-2"></div>
+    <span>Auto-filling certificate details...</span>
+  </div>
+)}
+
               <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
                   <div className="md:col-span-2">
                     {/* Certificate Image Upload */}
-                    <div className="flex flex-col items-center border-2 border-dashed border-[#2D6A4F] rounded-md p-4 mb-4">
-                      <input
-                        type="file"
-                        ref={fileInputRef}
-                        onChange={handleImageUpload}
-                        accept="image/*"
-                        className="hidden"
-                      />
-                      
-                      {previewImage ? (
-                        <div className="relative">
-                          <img 
-                            src={previewImage} 
-                            alt="Certificate Preview" 
-                            className="max-h-48 mb-2"
-                            onError={() => setPreviewImage(null)}
-                          />
-                          <motion.button
-                            type="button"
-                            className="absolute top-0 right-0 bg-[#081C15] rounded-full p-1"
-                            whileHover={{ scale: 1.1 }}
-                            onClick={() => setPreviewImage(null)}
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#95D5B2" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M18 6 6 18M6 6l12 12"/>
-                            </svg>
-                          </motion.button>
-                        </div>
-                      ) : (
-                        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#95D5B2" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M5.52 19c.64-2.2 1.84-3 3.22-3h6.52c1.38 0 2.58.8 3.22 3"/>
-                          <circle cx="12" cy="10" r="3"/>
-                          <rect x="3" y="3" width="18" height="18" rx="2"/>
-                        </svg>
-                      )}
-                      
-                      <motion.button
-                        type="button"
-                        className="mt-3 flex items-center gap-2 bg-[#2D6A4F] text-white px-4 py-2 rounded-md text-sm"
-                        whileHover={{ scale: 1.02, backgroundColor: "#3B8F6F" }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={triggerFileInput}
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                          <polyline points="17 8 12 3 7 8"/>
-                          <line x1="12" y1="3" x2="12" y2="15"/>
-                        </svg>
-                        Upload Certificate Image
-                      </motion.button>
-                      <p className="text-xs text-[#95D5B2] mt-2 text-center">
-                        Upload an image of your certificate <br/> 
-                        (We'll use OCR to extract information automatically)
-                      </p>
-                    </div>
                   
                     <div>
                       <label className="block text-[#95D5B2] text-sm mb-1">Certificate Name</label>
                       <input 
                         type="text" 
                         className="w-full bg-[#2D6A4F] text-white rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-[#95D5B2]"
-                        defaultValue={selectedCertification?.name || ""}
+                        value={formData.name || selectedCertification?.name || ""}
+                        onChange={(e) => setFormData({...formData, name: e.target.value})}
                       />
+                      {autoFillingFields && (
+                      <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#95D5B2]"></div>
+                      </div>
+                    )}
                     </div>
                   </div>
                   
@@ -1192,8 +1211,14 @@ export default function Home() {
                     <input 
                       type="text" 
                       className="w-full bg-[#2D6A4F] text-white rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-[#95D5B2]"
-                      defaultValue={selectedCertification?.issuingOrganization || ""}
+                      value={formData.issuingOrganization || selectedCertification?.issuingOrganization || ""}
+                      onChange={(e) => setFormData({...formData, issuingOrganization: e.target.value})}
                     />
+                    {autoFillingFields && (
+                      <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#95D5B2]"></div>
+                      </div>
+                    )}
                   </div>
                   
                   <div>
@@ -1220,8 +1245,15 @@ export default function Home() {
                     <input 
                       type="date" 
                       className="w-full bg-[#2D6A4F] text-white rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-[#95D5B2]"
-                      defaultValue={selectedCertification?.issueDate || ""}
+                      value={formData.issueDate || selectedCertification?.issueDate || ""}
+                      onChange={(e) => setFormData({...formData, issueDate: e.target.value})}
+                      
                     />
+                    {autoFillingFields && (
+                    <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#95D5B2]"></div>
+                    </div>
+                  )}
                   </div>
                   
                   <div>
@@ -1229,8 +1261,14 @@ export default function Home() {
                     <input 
                       type="date" 
                       className="w-full bg-[#2D6A4F] text-white rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-[#95D5B2]"
-                      defaultValue={selectedCertification?.expirationDate || ""}
+                      value={formData.expirationDate || selectedCertification?.expirationDate || ""}
+                      onChange={(e) => setFormData({...formData, expirationDate: e.target.value})}
                     />
+                    {autoFillingFields && (
+                      <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#95D5B2]"></div>
+                      </div>
+                    )}
                   </div>
                   
                   <div>
@@ -1296,9 +1334,13 @@ export default function Home() {
 
             </motion.div>
           </div>
+
+          
           
         )}
       </>
+
+      
     );
   };
   
