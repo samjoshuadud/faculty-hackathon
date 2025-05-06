@@ -17,7 +17,7 @@ const handler = NextAuth({
       const isUmakEmail = user.email?.endsWith('@umak.edu.ph');
 
       if (!isUmakEmail) {
-        throw new Error("Invalid Domain");
+        return '/api/auth/error?reason=invalid-domain';
       }
 
       try {
@@ -26,7 +26,7 @@ const handler = NextAuth({
 
         if (!dbUser) {
           console.log("User not found in database:", user.email);
-          return false; // Reject sign in
+          return '/api/auth/error?reason=user-not-found'; // Custom error
         }
 
         user.id = dbUser._id.toString();
@@ -35,7 +35,7 @@ const handler = NextAuth({
         return true;
       } catch (error) {
         console.error("Error in signIn callback:", error);
-        return false;
+        return '/api/auth/error?reason=database-error'; // Custom error
       }
     },
     async jwt({ token, user }) {

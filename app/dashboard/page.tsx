@@ -347,11 +347,11 @@ export default function Home() {
       case "dashboard":
         return mydashboard();
       case "education":
-        return <div>Education</div>;
+        return <LoadingScreen />;
       case "awards":
-        return <div>Awards</div>;
+        return <LoadingScreen />;
       case "events":
-        return <div>Events</div>;
+        return <LoadingScreen />;
       default:
         return mydashboard();
     }
