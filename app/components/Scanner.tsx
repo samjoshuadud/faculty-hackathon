@@ -89,13 +89,15 @@ export default function CertificationScanner({
   };
 
   return (
-    <div className={`p-4 bg-white rounded-lg shadow-sm ${className}`}>
+    <div className={`p-4 bg-[#2D6A4F] rounded-lg ${className}`}>
       <div className="mb-4">
-        <label className="block text-gray-700 mb-2">Upload Certificate Image</label>
+        <label className="block text-[#95D5B2] mb-2 text-sm">Upload Certificate Image</label>
         <input 
           type="file" 
           onChange={handleFileChange} 
-          className="w-full border border-gray-300 rounded p-2"
+          className="w-full border border-[#3B8F6F] rounded p-2 bg-[#1B4332] text-white file:mr-4 file:py-2 file:px-4 file:rounded
+          file:border-0 file:text-sm file:font-semibold file:bg-[#3B8F6F] file:text-white
+          hover:file:bg-[#4CAF50]"
           accept="image/*"
           disabled={isProcessing}
         />
@@ -103,13 +105,13 @@ export default function CertificationScanner({
       
       {isProcessing && (
         <div className="flex items-center justify-center py-4">
-          <div className="text-blue-500">Processing...</div>
+          <div className="text-[#95D5B2]">Processing...</div>
         </div>
       )}
       
       {showPreview && imagePreview && (
         <div className="mb-4">
-          <div className="border border-gray-300 rounded-lg overflow-hidden">
+          <div className="border border-[#3B8F6F] rounded-lg overflow-hidden">
             <img 
               src={imagePreview} 
               alt="Certificate preview" 

@@ -22,10 +22,15 @@ const handler = NextAuth({
 
       try {
         await dbConnect();
+        console.log("User model collection name:", User.collection.name);
+        console.log("User model schema:", Object.keys(User.schema.paths).join(', '));
+        console.log("Looking for email:", user.email);
+        
         const dbUser = await User.findOne({ email: user.email });
 
         if (!dbUser) {
           console.log("User not found in database:", user.email);
+          console.log("dbUser: ", dbUser);
           return '/api/auth/error?reason=user-not-found'; // Custom error
         }
 
@@ -44,7 +49,8 @@ const handler = NextAuth({
         token.name = user.name;
         token.email = user.email;
         token.image = user.image;
-      }
+        token.role = user.role;
+        }
       return token;
     },
     async session({ session, token }) {
@@ -59,6 +65,7 @@ const handler = NextAuth({
             name: dbUser.name,
             email: dbUser.email,
             image: dbUser.image,
+            role: dbUser.role,
           };
         } else {
           (session as any).user = {
@@ -66,6 +73,7 @@ const handler = NextAuth({
             name: token.name,
             email: token.email,
             image: token.image,
+            role: token.role,
           };
         }
       } catch (error) {
@@ -76,6 +84,7 @@ const handler = NextAuth({
           name: token.name,
           email: token.email,
           image: token.image,
+          role: token.role,
         };
       }
 

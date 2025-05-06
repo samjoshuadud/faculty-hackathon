@@ -14,14 +14,16 @@ import LoadingScreen from "./LoadingScreen";
 
 export default function Header() {
   const { data: session, status } = useSession();
- 
 
   return (
     <div>
       <section className="border-b-1 border-white/20 flex justify-between px-10">
         <div className="flex items-center justify-between py-5">
           <div className="flex justify-center items-center gap-5">
-            <button className="cursor-pointer transition-transform duration-200 hover:scale-105" onClick={() => redirect('/')}>
+            <button
+              className="cursor-pointer transition-transform duration-200 hover:scale-105"
+              onClick={() => redirect("/")}
+            >
               <Image
                 src="/umak_logo.png"
                 height={60}
@@ -30,8 +32,13 @@ export default function Header() {
                 className="transition-transform duration-200 hover:scale-105"
               />
             </button>
-
-            <h1 className="font-extrabold text-[#95D5B2] text-xl">CCIS FPMS</h1>
+            <h1 className="font-extrabold text-[#95D5B2] text-xl">
+              {session?.user?.role === "faculty"
+                ? "Faculty Dashboard"
+                : session?.user?.role === "admin"
+                  ? "Admin Dashboard"
+                  : "CCIS FPMS"}
+            </h1>
           </div>
         </div>
         {session && (
