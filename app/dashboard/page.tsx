@@ -88,6 +88,7 @@ export default function Home() {
   const [selectedEducation, setSelectedEducation] = useState<Education | null>(null);
   const [educationData, setEducationData] = useState<Education[]>([]);
   const [experiencesData, setExperiencesData] = useState<Experience[]>([]);
+  const [certificationsData, setCertificationsData] = useState<Certification[]>([]);
 
   const [isExperienceModalOpen, setIsExperienceModalOpen] = useState(false);
   const [selectedExperience, setSelectedExperience] = useState<Experience | null>(null);
@@ -204,17 +205,22 @@ useEffect(() => {
 
 
   useEffect(() => {
-    if (!session) return;
+    if (!session) return; // Wait for session to be available
+
     const fetchData = async () => {
       try {
-        const res = await axios.get(`/api/education?userID=${session?.user?.id}`);
-        const resXp = await axios.get(`/api/experience?userID=${session?.user?.id}`);
-        setEducationData(res.data);
-        setExperiencesData(resXp.data);
+        const resEducation = await axios.get(`/api/education?userID=${session?.user?.id}`);
+        const resExperience = await axios.get(`/api/experience?userID=${session?.user?.id}`);
+        const resCertifications = await axios.get(`/api/certifications?userID=${session?.user?.id}`);
+
+        setEducationData(resEducation.data);
+        setExperiencesData(resExperience.data);
+        setCertificationsData(resCertifications.data);
       } catch (error) {
-        console.error(error);
+        console.error('Error fetching data:', error);
       }
     }
+
     fetchData();
   }, [session]);
 
@@ -314,6 +320,41 @@ useEffect(() => {
       console.error('Error submitting experience:', error);
     }
   };
+
+  const handleCertificationSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  e.preventDefault();
+
+  const form = e.currentTarget;
+
+  const body = {
+    name: form.name.value,
+    issuingOrganization: form.issuingOrganization.value,
+    issueDate: form.issueDate.value,
+    skills: form.skills.value,
+    expirationDate: form.expirationDate.value,
+    credentialId: form.credentialId.value,
+    credentialURL: form.credentialURL.value,
+    description: form.description.value,
+    user: session?.user?.id,
+  };
+
+  console.log("Certification Data Submitted:", body);
+
+  try {
+    const res = await axios.post('/api/certifications', body, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (res.status === 200) {
+      setIsCertModalOpen(false);
+      console.log("Certification successfully submitted.");
+    }
+  } catch (error) {
+    console.error("Error submitting certification:", error);
+  }
+};
 
   const buttons = [
     {
@@ -1406,49 +1447,49 @@ useEffect(() => {
     },
   };
 
-  const certificationsData: Certification[] = [
-    {
-      id: 1,
-      name: "AWS Certified Solutions Architect - Professional",
-      issuingOrganization: "Amazon Web Services (AWS)",
-      issueDate: "2023-05-15",
-      expirationDate: "2026-05-15",
-      credentialId: "AWS-CSAP-12345",
-      credentialURL: "https://aws.amazon.com/verification",
-      certificationType: "Professional",
-      skills: ["Cloud Architecture", "AWS Services", "Security", "Networking"],
-      description: "Validates advanced knowledge of AWS architecture design and implementation.",
-      imageUrl: "https://example.com/aws-cert.jpg",
-      status: 'active'
-    }, {
-      id: 2,
-      name: "Project Management Professional (PMP)",
-      issuingOrganization: "Project Management Institute",
-      issueDate: "2022-11-10",
-      expirationDate: "2025-11-10",
-      credentialId: "PMP-123456",
-      credentialURL: "https://pmi.org/certifications/verify",
-      certificationType: "Professional",
-      skills: ["Project Management", "Leadership", "Risk Management", "Scheduling"],
-      description: "Internationally recognized professional designation for project managers.",
-      imageUrl: "https://example.com/pmp-cert.jpg",
-      status: 'expiring'
-    },
-    {
-      id: 3,
-      name: "Certified Information Systems Security Professional (CISSP)",
-      issuingOrganization: "ISC²",
-      issueDate: "2021-08-22",
-      expirationDate: "2024-08-22",
-      credentialId: "CISSP-987654",
-      credentialURL: "https://isc2.org/verify",
-      certificationType: "Security",
-      skills: ["Information Security", "Risk Management", "Network Security", "Cryptography"],
-      description: "An advanced-level certification for IT security professionals.",
-      imageUrl: "https://example.com/cissp-cert.jpg",
-      status: 'expiring'
-    }
-  ];
+  // const certificationsData: Certification[] = [
+  //   {
+  //     id: 1,
+  //     name: "AWS Certified Solutions Architect - Professional",
+  //     issuingOrganization: "Amazon Web Services (AWS)",
+  //     issueDate: "2023-05-15",
+  //     expirationDate: "2026-05-15",
+  //     credentialId: "AWS-CSAP-12345",
+  //     credentialURL: "https://aws.amazon.com/verification",
+  //     certificationType: "Professional",
+  //     skills: ["Cloud Architecture", "AWS Services", "Security", "Networking"],
+  //     description: "Validates advanced knowledge of AWS architecture design and implementation.",
+  //     imageUrl: "https://example.com/aws-cert.jpg",
+  //     status: 'active'
+  //   }, {
+  //     id: 2,
+  //     name: "Project Management Professional (PMP)",
+  //     issuingOrganization: "Project Management Institute",
+  //     issueDate: "2022-11-10",
+  //     expirationDate: "2025-11-10",
+  //     credentialId: "PMP-123456",
+  //     credentialURL: "https://pmi.org/certifications/verify",
+  //     certificationType: "Professional",
+  //     skills: ["Project Management", "Leadership", "Risk Management", "Scheduling"],
+  //     description: "Internationally recognized professional designation for project managers.",
+  //     imageUrl: "https://example.com/pmp-cert.jpg",
+  //     status: 'expiring'
+  //   },
+  //   {
+  //     id: 3,
+  //     name: "Certified Information Systems Security Professional (CISSP)",
+  //     issuingOrganization: "ISC²",
+  //     issueDate: "2021-08-22",
+  //     expirationDate: "2024-08-22",
+  //     credentialId: "CISSP-987654",
+  //     credentialURL: "https://isc2.org/verify",
+  //     certificationType: "Security",
+  //     skills: ["Information Security", "Risk Management", "Network Security", "Cryptography"],
+  //     description: "An advanced-level certification for IT security professionals.",
+  //     imageUrl: "https://example.com/cissp-cert.jpg",
+  //     status: 'expiring'
+  //   }
+  // ];
 
   const handleEditCertification = (certification: Certification) => {
     setSelectedCertification(certification);
@@ -2833,9 +2874,9 @@ useEffect(() => {
           animate="show"
         >
           <div className="grid grid-cols-1 gap-6">
-            {certificationsData.map((cert) => (
+            {certificationsData.map((cert, index) => (
               <motion.div
-                key={cert.id}
+                key={cert._id}
                 className="bg-[#1B4332] rounded-lg p-5 shadow-sm"
                 variants={itemVariants}
                 whileHover={{ boxShadow: "0 4px 20px rgba(149, 213, 178, 0.1)" }}
@@ -2882,9 +2923,9 @@ useEffect(() => {
                           </a>
                         )}
                       </div>
-                      {cert.skills.length > 0 && (
+                      {cert?.skills?.length > 0 && (
                         <div className="flex flex-wrap gap-1 mt-2">
-                          {cert.skills.map((skill, index) => (
+                          {cert?.skills.map((skill, index) => (
                             <span
                               key={index}
                               className="bg-[#2D6A4F] text-[#95D5B2] text-xs py-0.5 px-2 rounded-full"
@@ -2955,7 +2996,7 @@ useEffect(() => {
                   </div>
                 )}
 
-                <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
+                <form className="space-y-4" onSubmit={handleCertificationSubmit}>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
                     <div className="md:col-span-2">
                       {/* Certificate Image Upload */}
@@ -2964,6 +3005,7 @@ useEffect(() => {
                         <label className="block text-[#95D5B2] text-sm mb-1">Certificate Name</label>
                         <input
                           type="text"
+                          name="name"
                           className="w-full bg-[#2D6A4F] text-white rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-[#95D5B2]"
                           value={formData.name || selectedCertification?.name || ""}
                           onChange={(e) => setFormData({ ...formData, name: e.target.value })}
@@ -2980,6 +3022,7 @@ useEffect(() => {
                       <label className="block text-[#95D5B2] text-sm mb-1">Issuing Organization</label>
                       <input
                         type="text"
+                        name="issuingOrganization"
                         className="w-full bg-[#2D6A4F] text-white rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-[#95D5B2]"
                         value={formData.issuingOrganization || selectedCertification?.issuingOrganization || ""}
                         onChange={(e) => setFormData({ ...formData, issuingOrganization: e.target.value })}
@@ -2994,6 +3037,7 @@ useEffect(() => {
                     <div>
                       <label className="block text-[#95D5B2] text-sm mb-1">Type/Level</label>
                       <select
+                         name="certificationType"
                         className="w-full bg-[#2D6A4F] text-white rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-[#95D5B2]"
                         defaultValue={selectedCertification?.certificationType || ""}
                       >
@@ -3013,6 +3057,7 @@ useEffect(() => {
                     <div>
                       <label className="block text-[#95D5B2] text-sm mb-1">Issue Date</label>
                       <input
+                        name="issueDate"
                         type="date"
                         className="w-full bg-[#2D6A4F] text-white rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-[#95D5B2]"
                         value={formData.issueDate || selectedCertification?.issueDate || ""}
@@ -3029,6 +3074,7 @@ useEffect(() => {
                     <div>
                       <label className="block text-[#95D5B2] text-sm mb-1">Expiration Date</label>
                       <input
+                      name="expirationDate"
                         type="date"
                         className="w-full bg-[#2D6A4F] text-white rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-[#95D5B2]"
                         value={formData.expirationDate || selectedCertification?.expirationDate || ""}
@@ -3045,6 +3091,7 @@ useEffect(() => {
                       <label className="block text-[#95D5B2] text-sm mb-1">Credential ID</label>
                       <input
                         type="text"
+                        name="credentialId"
                         className="w-full bg-[#2D6A4F] text-white rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-[#95D5B2]"
                         defaultValue={selectedCertification?.credentialId || ""}
                       />
@@ -3054,6 +3101,7 @@ useEffect(() => {
                       <label className="block text-[#95D5B2] text-sm mb-1">Verification URL (optional)</label>
                       <input
                         type="url"
+                        name="credentialURL"
                         className="w-full bg-[#2D6A4F] text-white rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-[#95D5B2]"
                         defaultValue={selectedCertification?.credentialURL || ""}
                         placeholder="https://..."
@@ -3063,6 +3111,7 @@ useEffect(() => {
                     <div className="md:col-span-2">
                       <label className="block text-[#95D5B2] text-sm mb-1">Skills (comma separated)</label>
                       <input
+                      name="skills"
                         type="text"
                         className="w-full bg-[#2D6A4F] text-white rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-[#95D5B2]"
                         defaultValue={selectedCertification?.skills.join(", ") || ""}
@@ -3073,6 +3122,7 @@ useEffect(() => {
                     <div className="md:col-span-2">
                       <label className="block text-[#95D5B2] text-sm mb-1">Description</label>
                       <textarea
+                      name="description"
                         className="w-full bg-[#2D6A4F] text-white rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-[#95D5B2] min-h-[80px]"
                         defaultValue={selectedCertification?.description || ""}
                         placeholder="Describe what this certification covers and its significance."
