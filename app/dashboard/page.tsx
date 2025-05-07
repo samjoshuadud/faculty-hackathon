@@ -612,83 +612,241 @@ useEffect(() => {
   };
 
 
-  const generateCV = (format: 'html' | 'pdf' = 'html') => {
-    // Get all the necessary data
-    const userData = {
-      name: session?.user?.name || 'Faculty Member',
-      email: session?.user?.email || '',
-      role: session?.user?.role || 'Faculty',
-      education: educationData,
-      experience: experiencesData,
-      certifications: certificationsData,
-      documents: documentsData
-    };
-  
-    if (format === 'html') {
-      // Generate HTML CV
-      const cvContent = generateCVDocument(userData);
-      
-      // Create a blob and download
-      const blob = new Blob([cvContent], { type: 'text/html' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `${userData.name.replace(/\s+/g, '_')}_CV.html`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    } else {
-      // Generate PDF CV
-      const doc = new jsPDF();
-      
-      // Add content to PDF
-      doc.setFontSize(22);
-      doc.setTextColor(27, 67, 50); // #1B4332
-      doc.text(userData.name, 105, 20, { align: 'center' });
-      
-      doc.setFontSize(12);
-      doc.setTextColor(85, 85, 85);
-      doc.text(`${userData.email} | ${userData.role}`, 105, 28, { align: 'center' });
-      
-      // Education section
-      if (userData.education.length > 0) {
-        doc.setFontSize(16);
-        doc.setTextColor(27, 67, 50);
-        doc.text('Education', 20, 45);
-        doc.setLineWidth(0.5);
-        doc.setDrawColor(149, 213, 178); // #95D5B2
-        doc.line(20, 48, 190, 48);
-        
-        let yPos = 55;
-        userData.education.forEach((edu: Education) => {
-          doc.setFontSize(14);
-          doc.setTextColor(45, 106, 79); // #2D6A4F
-          doc.text(edu.degree, 20, yPos);
-          
-          doc.setFontSize(12);
-          doc.setTextColor(0, 0, 0);
-          doc.text(edu.institution, 20, yPos + 7);
-          
-          doc.setFontSize(11);
-          doc.setTextColor(85, 85, 85);
-          doc.text(edu.year, 20, yPos + 14);
-          
-          if (edu.description) {
-            doc.setFontSize(10);
-            doc.setTextColor(50, 50, 50);
-            const descLines = doc.splitTextToSize(edu.description, 170);
-            doc.text(descLines, 20, yPos + 22);
-            yPos += 22 + (descLines.length * 5);
-          } else {
-            yPos += 22;
-          }
-        });
-      }
-  
-      // Save PDF with name
-      doc.save(`${userData.name.replace(/\s+/g, '_')}_CV.pdf`);
-    }
+// Update your PDF generation part of the generateCV function
+
+const generateCV = (format: 'html' | 'pdf' = 'html') => {
+  // Get all the necessary data
+  const userData = {
+    name: session?.user?.name || 'Faculty Member',
+    email: session?.user?.email || '',
+    role: session?.user?.role || 'Faculty',
+    education: educationData,
+    experience: experiencesData,
+    certifications: certificationsData,
+    documents: documentsData
   };
+
+  if (format === 'html') {
+    // Generate HTML CV - This part is working fine
+    const cvContent = generateCVDocument(userData);
+    
+    const blob = new Blob([cvContent], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${userData.name.replace(/\s+/g, '_')}_CV.html`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  } else {
+    // Generate PDF CV - Fix this part to include all sections
+    const doc = new jsPDF();
+    
+    // Helper function for formatting dates
+    const formatDate = (dateStr: string | null) => {
+      if (!dateStr) return 'Present';
+      return new Date(dateStr).toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'long'
+      });
+    };
+    
+    // Add header with name
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(22);
+    doc.setTextColor(27, 67, 50); // #1B4332
+    doc.text(userData.name, 105, 20, { align: 'center' });
+    
+    // Add contact info
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(12);
+    doc.setTextColor(85, 85, 85);
+    doc.text(`${userData.email} | ${userData.role}`, 105, 28, { align: 'center' });
+    
+    // Horizontal line
+    doc.setDrawColor(149, 213, 178); // #95D5B2
+    doc.setLineWidth(0.5);
+    doc.line(20, 35, 190, 35);
+    
+    let yPos = 45;
+    
+    // Education section
+    if (userData.education && userData.education.length > 0) {
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(16);
+      doc.setTextColor(27, 67, 50); // #1B4332
+      doc.text('Education', 20, yPos);
+      doc.setLineWidth(0.2);
+      doc.line(20, yPos + 3, 70, yPos + 3);
+      
+      yPos += 12;
+      
+      userData.education.forEach((edu: Education) => {
+        // Check space left on page, create new page if needed
+        if (yPos > 270) {
+          doc.addPage();
+          yPos = 20;
+        }
+        
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(13);
+        doc.setTextColor(45, 106, 79); // #2D6A4F
+        doc.text(edu.degree, 20, yPos);
+        
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(11);
+        doc.setTextColor(0, 0, 0);
+        doc.text(edu.institution, 20, yPos + 6);
+        
+        doc.setFontSize(10);
+        doc.setTextColor(85, 85, 85);
+        doc.text(edu.year, 20, yPos + 12);
+        
+        if (edu.gpa) {
+          doc.text(`GPA: ${edu.gpa}`, 20, yPos + 18);
+          yPos += 6; // extra space for GPA line
+        }
+        
+        if (edu.description) {
+          const splitDesc = doc.splitTextToSize(edu.description, 170);
+          doc.text(splitDesc, 20, yPos + 18);
+          yPos += 6 + (splitDesc.length * 5);
+        }
+        
+        yPos += 20;
+      });
+    }
+    
+    // Experience section - Add this part
+    if (userData.experience && userData.experience.length > 0) {
+      // Check space left on page, create new page if needed
+      if (yPos > 250) {
+        doc.addPage();
+        yPos = 20;
+      }
+      
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(16);
+      doc.setTextColor(27, 67, 50); // #1B4332
+      doc.text('Professional Experience', 20, yPos);
+      doc.setLineWidth(0.2);
+      doc.line(20, yPos + 3, 95, yPos + 3);
+      
+      yPos += 12;
+      
+      userData.experience.forEach((exp: Experience) => {
+        // Check space left on page, create new page if needed
+        if (yPos > 270) {
+          doc.addPage();
+          yPos = 20;
+        }
+        
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(13);
+        doc.setTextColor(45, 106, 79); // #2D6A4F
+        doc.text(exp.title, 20, yPos);
+        
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(11);
+        doc.setTextColor(0, 0, 0);
+        doc.text(`${exp.company} - ${exp.employmentType}`, 20, yPos + 6);
+        
+        doc.setFontSize(10);
+        doc.setTextColor(85, 85, 85);
+        doc.text(`${exp.startDate} - ${exp.endDate || 'Present'}`, 20, yPos + 12);
+        
+        if (exp.location) {
+          doc.text(`${exp.location} (${exp.locationType})`, 20, yPos + 18);
+          yPos += 6;
+        }
+        
+        if (exp.description) {
+          const splitDesc = doc.splitTextToSize(exp.description, 170);
+          doc.text(splitDesc, 20, yPos + 18);
+          yPos += 6 + (splitDesc.length * 5);
+        }
+        
+        yPos += 20;
+      });
+    }
+    
+    // Certifications section - Add this part
+    if (userData.certifications && userData.certifications.length > 0) {
+      // Check space left on page, create new page if needed
+      if (yPos > 250) {
+        doc.addPage();
+        yPos = 20;
+      }
+      
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(16);
+      doc.setTextColor(27, 67, 50); // #1B4332
+      doc.text('Certifications', 20, yPos);
+      doc.setLineWidth(0.2);
+      doc.line(20, yPos + 3, 70, yPos + 3);
+      
+      yPos += 12;
+      
+      userData.certifications.forEach((cert: Certification) => {
+        // Check space left on page, create new page if needed
+        if (yPos > 270) {
+          doc.addPage();
+          yPos = 20;
+        }
+        
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(13);
+        doc.setTextColor(45, 106, 79); // #2D6A4F
+        doc.text(cert.name, 20, yPos);
+        
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(11);
+        doc.setTextColor(0, 0, 0);
+        doc.text(cert.issuingOrganization, 20, yPos + 6);
+        
+        doc.setFontSize(10);
+        doc.setTextColor(85, 85, 85);
+        const certDate = `Issued: ${formatDate(cert.issueDate)} ${cert.expirationDate ? `- Expires: ${formatDate(cert.expirationDate)}` : ''}`;
+        doc.text(certDate, 20, yPos + 12);
+        
+        if (cert.credentialId) {
+          doc.text(`Credential ID: ${cert.credentialId}`, 20, yPos + 18);
+          yPos += 6;
+        }
+        
+        if (cert.skills && cert.skills.length > 0) {
+          const skillsText = `Skills: ${cert.skills.join(', ')}`;
+          const splitSkills = doc.splitTextToSize(skillsText, 170);
+          doc.text(splitSkills, 20, yPos + 18);
+          yPos += (splitSkills.length - 1) * 5;
+        }
+        
+        if (cert.description) {
+          const splitDesc = doc.splitTextToSize(cert.description, 170);
+          doc.text(splitDesc, 20, yPos + 24);
+          yPos += 6 + (splitDesc.length * 5);
+        }
+        
+        yPos += 20;
+      });
+    }
+    
+    // Add footer
+    const today = new Date().toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+    
+    doc.setFont('helvetica', 'italic');
+    doc.setFontSize(10);
+    doc.setTextColor(120, 120, 120);
+    doc.text(`Generated on ${today} | CCIS Faculty Profile Management System`, 105, 285, { align: 'center' });
+
+    // Save the PDF
+    doc.save(`${userData.name.replace(/\s+/g, '_')}_CV.pdf`);
+  }
+};
   
 
   const generateCVDocument = (userData: any) => {
