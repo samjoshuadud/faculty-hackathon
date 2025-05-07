@@ -1,6 +1,7 @@
 import dbConnect from "@/lib/db";
 import Education from "@/models/Education";
 
+
 export async function POST(req: any) {
   await dbConnect();
 

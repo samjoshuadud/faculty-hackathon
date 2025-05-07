@@ -129,9 +129,78 @@ export default function Home() {
   const [filterTypetwo, setFilterTypetwo] = useState<'all' | 'education' | 'experience' | 'certification'>('all');
   const [processingItem, setProcessingItem] = useState<number | null>(null);
 
+  
+// In your component declaration, add:
+const [isLoading, setIsLoading] = useState(true);
+
+const { data: session, status } = useSession();
+
+// Add these to your state declarations:
+const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+const [educationToDelete, setEducationToDelete] = useState<Education | null>(null);
+const [isDeleting, setIsDeleting] = useState(false);
+
+// Add these functions to your component:
+const handleDeleteEducation = (education: Education) => {
+  setEducationToDelete(education);
+  setIsDeleteModalOpen(true);
+};
+
+const closeDeleteModal = () => {
+  setIsDeleteModalOpen(false);
+  setEducationToDelete(null);
+};
+
+const confirmDeleteEducation = async () => {
+  if (!educationToDelete) return;
+  
+  setIsDeleting(true);
+  
+  try {
+    await axios.delete(`/api/education/${educationToDelete._id}`);
+    
+    // Remove the deleted education from the local state
+    setEducationData(prevData => 
+      prevData.filter(edu => edu._id !== educationToDelete._id)
+    );
+    
+    closeDeleteModal();
+  } catch (error) {
+    console.error("Error deleting education:", error);
+    // Handle error - maybe show an error message
+  } finally {
+    setIsDeleting(false);
+  }
+};
 
 
-  const { data: session, status } = useSession();
+// Then update your useEffect that fetches data:
+useEffect(() => {
+  if (!session) return;
+  
+  const fetchData = async () => {
+    setIsLoading(true); // Start loading
+    try {
+      const res = await axios.get(`/api/education?userID=${session?.user?.id}`);
+      const resXp = await axios.get(`/api/experience?userID=${session?.user?.id}`);
+      
+      // Log for debugging
+      console.log("Fetched education data:", res.data);
+      console.log("Fetched experience data:", resXp.data);
+      
+      // Check if data exists and is an array
+      setEducationData(Array.isArray(res.data) ? res.data : []);
+      setExperiencesData(Array.isArray(resXp.data) ? resXp.data : []);
+    } catch (error) {
+      console.error("Error fetching data:", error);
+    } finally {
+      setIsLoading(false); // End loading regardless of outcome
+    }
+  }
+  
+  fetchData();
+}, [session]);
+
 
 
   useEffect(() => {
@@ -160,7 +229,7 @@ export default function Home() {
   const handleEducationSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const form = e.currentTarget;
-
+  
     const body = {
       user: session?.user?.id,
       degree: form.degree.value,
@@ -169,45 +238,76 @@ export default function Home() {
       gpa: form.gpa.value,
       description: form.description.value,
     };
-
-    const res = await axios.post('/api/education', body,
-      {
+  
+    try {
+      console.log("Submitting education data:", body);
+      
+      const res = await axios.post('/api/education', body, {
         headers: {
           'Content-Type': 'application/json'
         }
       });
-
-    if (res.status === 200) {
-      setIsEditModalOpen(false);
+  
+      console.log("Education submission response:", res.data);
+  
+      if (res.status === 200) {
+        // Add the new education to the local state
+        const newEducation = res.data;
+        
+        // Make sure we're adding all fields from the response
+        setEducationData(prevData => {
+          console.log("Previous education data:", prevData);
+          console.log("Adding new education:", newEducation);
+          return [...prevData, newEducation];
+        });
+        
+        // Close the modal
+        setIsEditModalOpen(false);
+      }
+    } catch (error) {
+      console.error("Error submitting education:", error);
+      // Optional: Add error handling UI here
     }
   };
 
   const handleExperienceSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const form = e.currentTarget;
-
+    
+    // Use FormData to reliably get form values
+    const formData = new FormData(e.currentTarget);
+    
+    // Debug what fields are available
+    console.log("Form data entries:", Array.from(formData.entries()));
+    
+    // Build the body object safely
     const body = {
-      title: form.title.value,
-      employmentType: form.employmentType.value,
-      company: form.company.value,
-      isCurrentRole: form.isCurrentRole.checked,
-      startDate: form.startDate.value,
-      endDate: form.endDate.value,
-      location: form.location.value,
-      locationType: form.locationType.value,
-      description: form.description.value,
+      title: formData.get('title') as string || '',
+      employmentType: formData.get('employmentType') as string || '',
+      company: formData.get('company') as string || '',
+      isCurrentRole: formData.get('isCurrentRole') === 'on', // Checkbox handling
+      startDate: formData.get('startDate') as string || '',
+      endDate: formData.get('endDate') as string || '',
+      location: formData.get('location') as string || '',
+      locationType: formData.get('locationType') as string || '',
+      description: formData.get('description') as string || '',
       user: session?.user?.id,
     };
-    console.log(body);
-
+    
+    console.log("Request body:", body);
+  
     try {
       const res = await axios.post('/api/experience', body, {
         headers: {
           'Content-Type': 'application/json',
         },
       });
-
+  
       if (res.status === 200) {
+        // Optional: Update local state with the new experience
+        const newExperience = res.data;
+        setExperiencesData(prev => [...prev, newExperience]);
+        
+        // Close the modal
         setIsExperienceModalOpen(false);
       }
     } catch (error) {
@@ -2123,98 +2223,146 @@ export default function Home() {
           initial="hidden"
           animate="show"
         >
-          <div className="grid grid-cols-1 gap-6">
-            {educationData.map((education, index) => (
-              <motion.div
-                key={index}
-                className="bg-[#1B4332] rounded-lg p-5 shadow-sm"
-                variants={itemVariants}
-                whileHover={{ boxShadow: "0 4px 20px rgba(149, 213, 178, 0.1)" }}
-              >
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h2 className="text-white font-medium text-lg">{education.degree}</h2>
-                    <div className="mt-2 space-y-2">
-                      <div className="flex items-center">
-                        <BookOpen size={14} className="text-[#95D5B2] mr-2" />
-                        <p className="text-[#95D5B2] text-sm">{education.institution}</p>
-                      </div>
-                      <div className="flex items-center">
-                        <CalendarSearch size={14} className="text-[#95D5B2] mr-2" />
-                        <p className="text-[#95D5B2] text-sm">{education.year}</p>
-                      </div>
-                      <div className="flex items-center">
-                        <Award size={14} className="text-[#95D5B2] mr-2" />
-                        <p className="text-[#95D5B2] text-sm">GPA: {education.gpa}</p>
-                      </div>
-                    </div>
-                    <p className="mt-3 text-white text-sm">{education.description}</p>
-                  </div>
-                  <motion.button
-                    className="bg-[#2D6A4F] hover:bg-[#3B8F6F] text-white p-2 rounded-md"
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => handleEditEducation(education)}
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path>
-                      <path d="m15 5 4 4"></path>
-                    </svg>
-                  </motion.button>
-                </div>
-              </motion.div>
-            ))}
+<div className="grid grid-cols-1 gap-6">
+  {isLoading ? (
+    <div className="flex justify-center items-center h-40">
+      <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#95D5B2]"></div>
+    </div>
+  ) : educationData.length > 0 ? (
+    educationData.map((education, index) => (
+// Inside educationSection function, in the education card:
+
+<motion.div
+  key={index} // Update to use education._id when available
+  className="bg-[#1B4332] rounded-lg p-5 shadow-sm"
+  variants={itemVariants}
+  whileHover={{ boxShadow: "0 4px 20px rgba(149, 213, 178, 0.1)" }}
+>
+  <div className="flex justify-between items-start">
+    <div>
+      <h2 className="text-white font-medium text-lg">{education.degree || "Untitled Degree"}</h2>
+      <div className="mt-2 space-y-2">
+        <div className="flex items-center">
+          <BookOpen size={14} className="text-[#95D5B2] mr-2" />
+          <p className="text-[#95D5B2] text-sm">{education.institution || "Unknown Institution"}</p>
+        </div>
+        <div className="flex items-center">
+          <CalendarSearch size={14} className="text-[#95D5B2] mr-2" />
+          <p className="text-[#95D5B2] text-sm">{education.year || "N/A"}</p>
+        </div>
+        {education.gpa && (
+          <div className="flex items-center">
+            <Award size={14} className="text-[#95D5B2] mr-2" />
+            <p className="text-[#95D5B2] text-sm">GPA: {education.gpa}</p>
           </div>
+        )}
+      </div>
+      {education.description && (
+        <p className="mt-3 text-white text-sm">{education.description}</p>
+      )}
+    </div>
+    <div className="flex space-x-2">
+      <motion.button
+        className="bg-[#2D6A4F] hover:bg-[#3B8F6F] text-white p-2 rounded-md"
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+        onClick={() => handleEditEducation(education)}
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path>
+          <path d="m15 5 4 4"></path>
+        </svg>
+      </motion.button>
+      
+      {/* Delete Button */}
+      <motion.button
+        className="bg-[#8B0000] hover:bg-[#A52A2A] text-white p-2 rounded-md"
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+        onClick={() => handleDeleteEducation(education)}
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M3 6h18"></path>
+          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+        </svg>
+      </motion.button>
+    </div>
+  </div>
+</motion.div>
+    ))
+  ) : (
+    <div className="text-center py-10">
+      <BookOpen size={40} className="mx-auto text-[#2D6A4F] mb-2" />
+      <p className="text-[#95D5B2] text-lg">No education records found</p>
+      <p className="text-[#95D5B2] text-sm mt-1">Add your first education record</p>
+      <button
+        onClick={handleAddNew}
+        className="mt-4 bg-[#2D6A4F] hover:bg-[#3B8F6F] text-white py-2 px-4 rounded-md text-sm inline-flex items-center"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2">
+          <path d="M12 5v14M5 12h14" />
+        </svg>
+        Add Education
+      </button>
+    </div>
+  )}
+</div>
         </motion.div>
 
         {/* Edit Education Modal */}
         {isEditModalOpen && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <motion.div
-              className="bg-[#1B4332] rounded-lg p-6 w-full max-w-md"
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ type: "spring", stiffness: 300 }}
-            >
-              <h2 className="text-white text-xl font-medium mb-4">
-                {selectedEducation ? "Edit Education" : "Add New Education"}
-              </h2>
-              <form onSubmit={handleEducationSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-[#95D5B2] text-sm mb-1">Degree</label>
-                  <input
-                    type="text"
-                    name="degree"
-                    className="w-full bg-[#2D6A4F] text-white rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-[#95D5B2]"
-                    defaultValue={selectedEducation?.degree || ""}
-                  />
-                </div>
-                <div>
-                  <label className="block text-[#95D5B2] text-sm mb-1">Institution</label>
-                  <input
-                    type="text"
-                    name="institution"
-                    className="w-full bg-[#2D6A4F] text-white rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-[#95D5B2]"
-                    defaultValue={selectedEducation?.institution || ""}
-                  />
-                </div>
-                <div>
-                  <label className="block text-[#95D5B2] text-sm mb-1">Year</label>
-                  <input
-                    type="text"
-                    name="year"
-                    className="w-full bg-[#2D6A4F] text-white rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-[#95D5B2]"
-                    defaultValue={selectedEducation?.year || ""}
-                  />
-                </div>
-                <div>
-                  <label className="block text-[#95D5B2] text-sm mb-1">GPA</label>
-                  <input
-                    type="text"
-                    name="gpa"
-                    className="w-full bg-[#2D6A4F] text-white rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-[#95D5B2]"
-                    defaultValue={selectedEducation?.gpa || ""}
-                  />
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <motion.div
+            className="bg-[#1B4332] rounded-lg p-6 w-full max-w-md"
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: "spring", stiffness: 300 }}
+          >
+            <h2 className="text-white text-xl font-medium mb-4">
+              {selectedEducation ? "Edit Education" : "Add New Education"}
+            </h2>
+            <form onSubmit={handleEducationSubmit} className="space-y-4">
+              {/* Form Fields */}
+              <div>
+                <label className="block text-[#95D5B2] text-sm mb-1">Degree</label>
+                <input
+                  type="text"
+                  name="degree"
+                  className="w-full bg-[#2D6A4F] text-white rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-[#95D5B2]"
+                  defaultValue={selectedEducation?.degree || ""}
+                  placeholder="e.g., Bachelor of Science in Computer Science"
+                />
+              </div>
+              <div>
+                <label className="block text-[#95D5B2] text-sm mb-1">Institution</label>
+                <input
+                  type="text"
+                  name="institution"
+                  className="w-full bg-[#2D6A4F] text-white rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-[#95D5B2]"
+                  defaultValue={selectedEducation?.institution || ""}
+                  placeholder="e.g., Stanford University"
+                /></div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[#95D5B2] text-sm mb-1">Year</label>
+                    <input
+                      type="text"
+                      name="year"
+                      className="w-full bg-[#2D6A4F] text-white rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-[#95D5B2]"
+                      defaultValue={selectedEducation?.year || ""}
+                      placeholder="e.g., 2018-2022"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[#95D5B2] text-sm mb-1">GPA</label>
+                    <input
+                      type="text"
+                      name="gpa"
+                      className="w-full bg-[#2D6A4F] text-white rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-[#95D5B2]"
+                      defaultValue={selectedEducation?.gpa || ""}
+                      placeholder="e.g., 3.8/4.0"
+                    />
+                  </div>
                 </div>
                 <div>
                   <label className="block text-[#95D5B2] text-sm mb-1">Description</label>
@@ -2222,31 +2370,92 @@ export default function Home() {
                     name="description"
                     className="w-full bg-[#2D6A4F] text-white rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-[#95D5B2] min-h-[100px]"
                     defaultValue={selectedEducation?.description || ""}
+                    placeholder="Describe your academic achievements, research focus, or notable activities"
                   ></textarea>
-                </div>
-                <div className="flex justify-end space-x-3 pt-2">
-                  <motion.button
-                    type="button"
-                    className="bg-[#081C15] text-white px-4 py-2 rounded-md"
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={closeModal}
-                  >
-                    Cancel
-                  </motion.button>
-                  <motion.button
-                    type="submit"
-                    className="bg-[#95D5B2] text-[#081C15] px-4 py-2 rounded-md font-medium"
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    Save
-                  </motion.button>
-                </div>
-              </form>
-            </motion.div>
-          </div>
-        )}
+                </div>{/* Submit Status */}
+              <div className="h-6">
+                {/* This will be used to show submission status/errors */}
+                {false && (
+                  <p className="text-[#95D5B2] text-sm">Education record saved successfully!</p>
+                )}
+              </div>
+              
+              <div className="flex justify-end space-x-3 pt-2">
+                <motion.button
+                  type="button"
+                  className="bg-[#081C15] text-white px-4 py-2 rounded-md"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={closeModal}
+                >
+                  Cancel
+                </motion.button>
+                <motion.button
+                  type="submit"
+                  className="bg-[#95D5B2] text-[#081C15] px-4 py-2 rounded-md font-medium flex items-center"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <span>
+                    {selectedEducation ? "Update" : "Add"} Education
+                  </span>
+                </motion.button>
+              </div>
+            </form>
+          </motion.div>
+        </div>
+      )}
+
+{/* Delete Confirmation Modal */}
+{isDeleteModalOpen && educationToDelete && (
+  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <motion.div
+      className="bg-[#1B4332] rounded-lg p-6 w-full max-w-md"
+      initial={{ scale: 0.9, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
+      transition={{ type: "spring", stiffness: 300 }}
+    >
+      <h2 className="text-white text-xl font-medium mb-4">Confirm Deletion</h2>
+      
+      <p className="text-[#95D5B2] mb-6">
+        Are you sure you want to delete "{educationToDelete.degree}" from {educationToDelete.institution}? 
+        This action cannot be undone.
+      </p>
+      
+      <div className="flex justify-end space-x-3 pt-2">
+        <motion.button
+          type="button"
+          className="bg-[#081C15] text-white px-4 py-2 rounded-md"
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={closeDeleteModal}
+          disabled={isDeleting}
+        >
+          Cancel
+        </motion.button>
+        <motion.button
+          type="button"
+          className="bg-[#8B0000] text-white px-4 py-2 rounded-md font-medium flex items-center"
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={confirmDeleteEducation}
+          disabled={isDeleting}
+        >
+          {isDeleting ? (
+            <>
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+              <span>Deleting...</span>
+            </>
+          ) : (
+            <span>Delete</span>
+          )}
+        </motion.button>
+      </div>
+    </motion.div>
+  </div>
+)}
+
+
       </>
     );
   };
@@ -2482,27 +2691,28 @@ export default function Home() {
                 </div>
 
                 <div>
-                  <label className="block text-[#95D5B2] text-sm mb-1">Location</label>
-                  <input
-                    type="text"
-                    name="locationType"
-                    className="w-full bg-[#2D6A4F] text-white rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-[#95D5B2]"
-                    defaultValue={selectedExperience?.location || ""}
-                  />
-                </div>
+  <label className="block text-[#95D5B2] text-sm mb-1">Location</label>
+  <input
+    type="text"
+    name="location" // Change this from 'locationType' to 'location'
+    className="w-full bg-[#2D6A4F] text-white rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-[#95D5B2]"
+    defaultValue={selectedExperience?.location || ""}
+  />
+</div>
 
-                <div>
-                  <label className="block text-[#95D5B2] text-sm mb-1">Location Type</label>
-                  <select
-                    className="w-full bg-[#2D6A4F] text-white rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-[#95D5B2]"
-                    defaultValue={selectedExperience?.locationType || ""}
-                  >
-                    <option value="">Select location type</option>
-                    <option value="On-site">On-site</option>
-                    <option value="Hybrid">Hybrid</option>
-                    <option value="Remote">Remote</option>
-                  </select>
-                </div>
+<div>
+  <label className="block text-[#95D5B2] text-sm mb-1">Location Type</label>
+  <select
+    name="locationType" // Add this name attribute
+    className="w-full bg-[#2D6A4F] text-white rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-[#95D5B2]"
+    defaultValue={selectedExperience?.locationType || ""}
+  >
+    <option value="">Select location type</option>
+    <option value="On-site">On-site</option>
+    <option value="Hybrid">Hybrid</option>
+    <option value="Remote">Remote</option>
+  </select>
+</div>
 
                 <div>
                   <label className="block text-[#95D5B2] text-sm mb-1">Description</label>
@@ -2634,7 +2844,7 @@ export default function Home() {
                   <div className="flex-1">
                     <div className="flex items-center flex-wrap gap-2">
                       <h2 className="text-white font-medium text-lg">{cert.name}</h2>
-                      <span className={`text - xs py - 0.5 px - 2 rounded - full ${getCertStatusColor(cert.status)
+                      <span className={`text-xs py-0.5 px-2 rounded-full ${getCertStatusColor(cert.status)
                         }`}>
                         {cert.status === 'active' ? 'Active' : cert.status === 'expiring' ? 'Expiring Soon' : 'Expired'}
                       </span>
