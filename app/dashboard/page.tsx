@@ -75,6 +75,8 @@ export default function Home() {
 
   const [autoFillingFields, setAutoFillingFields] = useState(false);
 
+  const { data: session, status } = useSession();
+
 
   useEffect(() => {
     if (!session) return;
@@ -88,10 +90,9 @@ export default function Home() {
       }
     }
     fetchData();
-  }, []);
+  }, [session]);
 
 
-  const { data: session, status } = useSession();
   if (status == "loading") return <LoadingScreen />;
 
   if (!session) {
