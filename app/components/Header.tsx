@@ -56,13 +56,15 @@ export default function Header() {
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem asChild>
-                <Link href="/profile">Profile</Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => signOut({ callbackUrl: "/" })}>
-                Logout
-              </DropdownMenuItem>
-            </DropdownMenuContent>
+        {session?.user?.role !== "admin" && (
+          <DropdownMenuItem asChild>
+            <Link href="/profile">Profile</Link>
+          </DropdownMenuItem>
+        )}
+        <DropdownMenuItem onClick={() => signOut({ callbackUrl: "/" })}>
+          Logout
+        </DropdownMenuItem>
+      </DropdownMenuContent>
           </DropdownMenu>
         )}
       </section>
