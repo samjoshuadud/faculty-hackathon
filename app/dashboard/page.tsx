@@ -157,6 +157,48 @@ const [isDeletingCertification, setIsDeletingCertification] = useState(false);
 const [cvFormat, setCvFormat] = useState<'html' | 'pdf'>('html');
 const [showFormatOptions, setShowFormatOptions] = useState(false);
 
+// 1. First, add these state variables at the top of your component with other state declarations
+const [isDocDeleteModalOpen, setIsDocDeleteModalOpen] = useState(false);
+const [documentToDelete, setDocumentToDelete] = useState<Document | null>(null);
+const [isDeletingDocument, setIsDeletingDocument] = useState(false);
+
+// 2. Then add these handler functions
+const handleDeleteDocument = (document: Document) => {
+  setDocumentToDelete(document);
+  setIsDocDeleteModalOpen(true);
+};
+
+const closeDocDeleteModal = () => {
+  setIsDocDeleteModalOpen(false);
+  setDocumentToDelete(null);
+};
+
+const confirmDeleteDocument = async () => {
+  if (!documentToDelete) return;
+  
+  setIsDeletingDocument(true);
+  
+  try {
+    // Get current data
+    const currentData = getFromStorage(localStorageKeys.documents, []);
+    
+    // Filter out the item to delete
+    const updatedData = currentData.filter(doc => doc._id !== documentToDelete._id);
+    
+    // Save to localStorage
+    saveToStorage(localStorageKeys.documents, updatedData);
+    
+    // Update state
+    setDocumentsData(prevData => prevData.filter(doc => doc.id !== documentToDelete.id));
+    
+    closeDocDeleteModal();
+  } catch (error) {
+    console.error("Error deleting document:", error);
+  } finally {
+    setIsDeletingDocument(false);
+  }
+};
+
 
 // Then add these handler functions
 const handleDeleteCertification = (certification: Certification) => {
@@ -221,8 +263,22 @@ const confirmDeleteExperience = async () => {
     // Save to localStorage
     saveToStorage(localStorageKeys.experience, updatedData);
     
-    // Update state
-    setExperiencesData(prevData => prevData.filter(exp => exp.id !== experienceToDelete.id));
+    // Create mapped version for state update that matches your state structure
+    const mappedExperienceData = updatedData.map(exp => ({
+      id: parseInt(exp._id) || Math.floor(Math.random() * 10000),
+      title: exp.title || '',
+      employmentType: exp.employmentType || '',
+      company: exp.company || '',
+      isCurrentRole: exp.isCurrentRole || false,
+      startDate: exp.startDate || '',
+      endDate: exp.endDate,
+      location: exp.location || '',
+      locationType: exp.locationType || '',
+      description: exp.description || ''
+    }));
+    
+    // Update state with the properly formatted array
+    setExperiencesData(mappedExperienceData);
     
     closeExperienceDeleteModal();
   } catch (error) {
@@ -231,7 +287,6 @@ const confirmDeleteExperience = async () => {
     setIsDeletingExperience(false);
   }
 };
-
 
 
 
@@ -1039,6 +1094,7 @@ const generateCV = (format: 'html' | 'pdf' = 'html') => {
     const skillsInput = form.skills.value;
     const skillsArray = skillsInput.split(',').map(skill => skill.trim()).filter(Boolean);
   
+    // Create the certification object for localStorage (with _id)
     const newCertification = {
       _id: selectedCertification?._id || String(Date.now()),
       name: form.name.value,
@@ -1071,11 +1127,36 @@ const generateCV = (format: 'html' | 'pdf' = 'html') => {
       // Save to localStorage
       saveToStorage(localStorageKeys.certifications, updatedData);
       
-      // Update state
-      setCertificationsData(updatedData);
+      // Create state version with both id and _id
+      const stateCertification = {
+        id: parseInt(newCertification._id) || Math.floor(Math.random() * 10000),
+        name: newCertification.name,
+        issuingOrganization: newCertification.issuingOrganization,
+        issueDate: newCertification.issueDate,
+        expirationDate: newCertification.expirationDate,
+        credentialId: newCertification.credentialId,
+        credentialURL: newCertification.credentialURL,
+        certificationType: newCertification.certificationType,
+        skills: newCertification.skills,
+        description: newCertification.description,
+        imageUrl: newCertification.imageUrl,
+        status: newCertification.status,
+        _id: newCertification._id // Include _id for reference
+      };
+      
+      // Update the state
+      setCertificationsData(prev => {
+        if (selectedCertification) {
+          return prev.map(cert => cert.id === selectedCertification.id ? stateCertification : cert);
+        } else {
+          return [...prev, stateCertification];
+        }
+      });
       
       // Close the modal
       setIsCertModalOpen(false);
+      setPreviewImage(null);
+      setFormData({});
     } catch (error) {
       console.error("Error submitting certification:", error);
     }
@@ -1685,14 +1766,13 @@ const generateCV = (format: 'html' | 'pdf' = 'html') => {
             </motion.div>
           </div>
 
-          {/* Recent Activity Section */}
           <motion.div
             className="mt-8 bg-[#1B4332] rounded-lg p-5 shadow-sm"
             variants={itemVariants}
           >
             <h2 className="text-white font-medium text-lg mb-4">Recent Activity</h2>
             <div className="space-y-3">
-              {/* Activity items */}
+             
               <div className="flex items-center py-2 border-b border-[#2D6A4F]">
                 <div className="bg-[#2D6A4F] p-2 rounded-full mr-3">
                   <Award size={16} className="text-[#95D5B2]" />
@@ -1960,93 +2040,62 @@ const handleDocumentSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         >
           <div className="grid grid-cols-1 gap-6">
             {documentsData.map((doc) => (
-              <motion.div
-                key={doc.id}
-                className="bg-[#1B4332] rounded-lg p-5 shadow-sm"
-                variants={itemVariants}
-                whileHover={{ boxShadow: "0 4px 20px rgba(149, 213, 178, 0.1)" }}
-              >
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3">
-                      <div className="flex-shrink-0">
-                        {getFileIcon(doc.fileType)}
-                      </div>
-                      <div>
-                        <h2 className="text-white font-medium text-lg">{doc.title}</h2>
-                        <p className="text-sm text-[#95D5B2]">{doc.description}</p>
-                      </div>
-                    </div>
-
-                    <div className="mt-3 grid grid-cols-2 md:grid-cols-3 gap-y-2 text-sm">
-                      <div className="flex items-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[#95D5B2] mr-2">
-                          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                          <polyline points="14 2 14 8 20 8"></polyline>
-                        </svg>
-                        <span className="text-[#95D5B2]">{doc.fileName}</span>
-                      </div>
-
-                      <div className="flex items-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[#95D5B2] mr-2">
-                          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-                          <polyline points="15 3 21 3 21 9"></polyline>
-                          <line x1="10" y1="14" x2="21" y2="3"></line>
-                        </svg>
-                        <span className="text-[#95D5B2]">{doc.fileSize}</span>
-                      </div>
-
-                      <div className="flex items-center">
-                        <CalendarSearch size={14} className="text-[#95D5B2] mr-2" />
-                        <span className="text-[#95D5B2]">
-                          {new Date(doc.uploadDate).toLocaleDateString()}
-                        </span>
-                      </div>
-                    </div>
-
-                    {doc.tags.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mt-3">
-                        {doc.tags.map((tag, index) => (
-                          <span
-                            key={index}
-                            className="bg-[#2D6A4F] text-[#95D5B2] text-xs py-0.5 px-2 rounded-full"
-                          >
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex ml-4">
-                    <motion.a
-                      href={doc.fileUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="bg-[#2D6A4F] hover:bg-[#3B8F6F] text-white p-2 rounded-md mr-2"
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                        <polyline points="7 10 12 15 17 10"></polyline>
-                        <line x1="12" y1="15" x2="12" y2="3"></line>
-                      </svg>
-                    </motion.a>
-                    <motion.button
-                      className="bg-[#2D6A4F] hover:bg-[#3B8F6F] text-white p-2 rounded-md"
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => handleEditDocument(doc)}
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path>
-                        <path d="m15 5 4 4"></path>
-                      </svg>
-                    </motion.button>
-                  </div>
+            <motion.div
+              key={doc.id}
+              className="bg-[#1B4332] rounded-lg p-5 shadow-sm"
+              variants={itemVariants}
+              whileHover={{ boxShadow: "0 4px 20px rgba(149, 213, 178, 0.1)" }}
+            >
+              <div className="flex justify-between items-start">
+                <div className="flex-1">
+                  {/* Existing content */}
                 </div>
-              </motion.div>
+
+                <div className="flex ml-4">
+                  <motion.a
+                    href={doc.fileUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="bg-[#2D6A4F] hover:bg-[#3B8F6F] text-white p-2 rounded-md mr-2"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                      <polyline points="7 10 12 15 17 10"></polyline>
+                      <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                  </motion.a>
+                  <motion.button
+                    className="bg-[#2D6A4F] hover:bg-[#3B8F6F] text-white p-2 rounded-md mr-2"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => handleEditDocument(doc)}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path>
+                      <path d="m15 5 4 4"></path>
+                    </svg>
+                  </motion.button>
+                  
+                  {/* Delete Button */}
+                  <motion.button
+                    className="bg-[#8B0000] hover:bg-[#A52A2A] text-white p-2 rounded-md"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => handleDeleteDocument(doc)}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M3 6h18"></path>
+                      <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                      <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                      <line x1="10" y1="11" x2="10" y2="17"></line>
+                      <line x1="14" y1="11" x2="14" y2="17"></line>
+                    </svg>
+                  </motion.button>
+                </div>
+              </div>
+            </motion.div>
             ))}
           </div>
         </motion.div>
@@ -2198,6 +2247,55 @@ const handleDocumentSubmit = (e: React.FormEvent<HTMLFormElement>) => {
             </motion.div>
           </div>
         )}
+
+{/* Delete Confirmation Modal */}
+{isDocDeleteModalOpen && documentToDelete && (
+  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <motion.div
+      className="bg-[#1B4332] rounded-lg p-6 w-full max-w-md"
+      initial={{ scale: 0.9, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
+      transition={{ type: "spring", stiffness: 300 }}
+    >
+      <h2 className="text-white text-xl font-medium mb-4">Confirm Deletion</h2>
+      
+      <p className="text-[#95D5B2] mb-6">
+        Are you sure you want to delete the document "{documentToDelete.title}"? 
+        This action cannot be undone.
+      </p>
+      
+      <div className="flex justify-end space-x-3 pt-2">
+        <motion.button
+          type="button"
+          className="bg-[#081C15] text-white px-4 py-2 rounded-md"
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={closeDocDeleteModal}
+          disabled={isDeletingDocument}
+        >
+          Cancel
+        </motion.button>
+        <motion.button
+          type="button"
+          className="bg-[#8B0000] text-white px-4 py-2 rounded-md font-medium flex items-center"
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={confirmDeleteDocument}
+          disabled={isDeletingDocument}
+        >
+          {isDeletingDocument ? (
+            <>
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+              <span>Deleting...</span>
+            </>
+          ) : (
+            <span>Delete</span>
+          )}
+        </motion.button>
+      </div>
+    </motion.div>
+  </div>
+)}
       </>
     );
   };
@@ -3762,64 +3860,95 @@ const handleDocumentSubmit = (e: React.FormEvent<HTMLFormElement>) => {
           initial="hidden"
           animate="show"
         >
-          <div className="grid grid-cols-1 gap-6">
-            {certificationsData.map((cert, index) => (
-              // In the certificationsSection function, update the certification card UI:
-<motion.div
-  key={index}
-  className="bg-[#1B4332] rounded-lg p-5 shadow-sm"
-  variants={itemVariants}
-  whileHover={{ boxShadow: "0 4px 20px rgba(149, 213, 178, 0.1)" }}
->
-  <div className="flex justify-between items-start">
-    <div className="flex-1">
-      {/* Existing content */}
-    </div>
-    {cert.imageUrl && (
-      <div className="ml-4 mb-auto">
-        <div className="h-16 w-16 bg-[#2D6A4F] rounded-md overflow-hidden flex items-center justify-center">
-          <motion.img
-            src={cert.imageUrl}
-            alt={cert.name}
-            className="max-h-full max-w-full object-contain"
-            whileHover={{ scale: 1.1 }}
-          />
+{certificationsData.map((cert, index) => (
+  <motion.div
+    key={index}
+    className="bg-[#1B4332] rounded-lg p-5 shadow-sm mt-4"
+    variants={itemVariants}
+    whileHover={{ boxShadow: "0 4px 20px rgba(149, 213, 178, 0.1)" }}
+  >
+    <div className="flex justify-between items-start">
+      <div className="flex-1">
+        <h2 className="text-white font-medium text-lg">{cert.name}</h2>
+        <div className="mt-2 space-y-2">
+          <div className="flex items-center">
+            <Award size={14} className="text-[#95D5B2] mr-2" />
+            <p className="text-[#95D5B2] text-sm">{cert.issuingOrganization}</p>
+          </div>
+          <div className="flex items-center">
+            <CalendarSearch size={14} className="text-[#95D5B2] mr-2" />
+            <p className="text-[#95D5B2] text-sm">
+              Issued: {cert.issueDate} 
+              {cert.expirationDate ? ` • Expires: ${cert.expirationDate}` : ''}
+            </p>
+          </div>
+          {cert.credentialId && (
+            <div className="flex items-center">
+              <FileText size={14} className="text-[#95D5B2] mr-2" />
+              <p className="text-[#95D5B2] text-sm">ID: {cert.credentialId}</p>
+            </div>
+          )}         
+
         </div>
-      </div>
-    )}
-    <div className="flex ml-4">
-      <motion.button
-        className="bg-[#2D6A4F] hover:bg-[#3B8F6F] text-white p-2 rounded-md mr-2"
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-        onClick={() => handleEditCertification(cert)}
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path>
-          <path d="m15 5 4 4"></path>
-        </svg>
-      </motion.button>
-      
-      {/* Delete Button */}
-      <motion.button
-        className="bg-[#8B0000] hover:bg-[#A52A2A] text-white p-2 rounded-md"
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-        onClick={() => handleDeleteCertification(cert)}
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M3 6h18"></path>
-          <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
-          <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
-          <line x1="10" y1="11" x2="10" y2="17"></line>
-          <line x1="14" y1="11" x2="14" y2="17"></line>
-        </svg>
-      </motion.button>
-    </div>
-  </div>
-</motion.div>
+        {cert.description && (
+          <p className="mt-3 text-white text-sm">{cert.description}</p>
+        )}
+        {cert.skills && cert.skills.length > 0 && (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {cert.skills.map((skill, i) => (
+              <span 
+                key={i} 
+                className="bg-[#2D6A4F] text-[#95D5B2] text-xs py-1 px-2 rounded-full"
+              >
+                {skill}
+              </span>
             ))}
           </div>
+        )}
+      </div>
+      {cert.imageUrl && (
+        <div className="ml-4 mb-auto">
+          <div className="h-16 w-16 bg-[#2D6A4F] rounded-md overflow-hidden flex items-center justify-center">
+            <motion.img
+              src={cert.imageUrl}
+              alt={cert.name}
+              className="max-h-full max-w-full object-contain"
+              whileHover={{ scale: 1.1 }}
+            />
+          </div>
+        </div>
+      )}
+      <div className="flex ml-4">
+        <motion.button
+          className="bg-[#2D6A4F] hover:bg-[#3B8F6F] text-white p-2 rounded-md mr-2"
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => handleEditCertification(cert)}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path>
+            <path d="m15 5 4 4"></path>
+          </svg>
+        </motion.button>
+        
+        <motion.button
+          className="bg-[#8B0000] hover:bg-[#A52A2A] text-white p-2 rounded-md"
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => handleDeleteCertification(cert)}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 6h18"></path>
+            <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+            <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+            <line x1="10" y1="11" x2="10" y2="17"></line>
+            <line x1="14" y1="11" x2="14" y2="17"></line>
+          </svg>
+        </motion.button>
+      </div>
+    </div>
+  </motion.div>
+))}
         </motion.div>
 
         {/* Certification Form Modal */}
