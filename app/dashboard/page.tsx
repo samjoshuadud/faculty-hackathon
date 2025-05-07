@@ -18,6 +18,8 @@ import { motion } from "framer-motion";
 import { useState, useRef, useEffect } from "react";
 import CertificationScanner from "../components/Scanner";
 import axios from 'axios';
+import jsPDF from 'jspdf';
+
 
 interface FacultyMember {
   id: number;
@@ -151,6 +153,10 @@ const [isDeletingExperience, setIsDeletingExperience] = useState(false);
 const [isCertDeleteModalOpen, setIsCertDeleteModalOpen] = useState(false);
 const [certificationToDelete, setCertificationToDelete] = useState<Certification | null>(null);
 const [isDeletingCertification, setIsDeletingCertification] = useState(false);
+
+const [cvFormat, setCvFormat] = useState<'html' | 'pdf'>('html');
+const [showFormatOptions, setShowFormatOptions] = useState(false);
+
 
 // Then add these handler functions
 const handleDeleteCertification = (certification: Certification) => {
@@ -604,6 +610,269 @@ useEffect(() => {
       console.error('Error submitting experience:', error);
     }
   };
+
+
+  const generateCV = (format: 'html' | 'pdf' = 'html') => {
+    // Get all the necessary data
+    const userData = {
+      name: session?.user?.name || 'Faculty Member',
+      email: session?.user?.email || '',
+      role: session?.user?.role || 'Faculty',
+      education: educationData,
+      experience: experiencesData,
+      certifications: certificationsData,
+      documents: documentsData
+    };
+  
+    if (format === 'html') {
+      // Generate HTML CV
+      const cvContent = generateCVDocument(userData);
+      
+      // Create a blob and download
+      const blob = new Blob([cvContent], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${userData.name.replace(/\s+/g, '_')}_CV.html`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } else {
+      // Generate PDF CV
+      const doc = new jsPDF();
+      
+      // Add content to PDF
+      doc.setFontSize(22);
+      doc.setTextColor(27, 67, 50); // #1B4332
+      doc.text(userData.name, 105, 20, { align: 'center' });
+      
+      doc.setFontSize(12);
+      doc.setTextColor(85, 85, 85);
+      doc.text(`${userData.email} | ${userData.role}`, 105, 28, { align: 'center' });
+      
+      // Education section
+      if (userData.education.length > 0) {
+        doc.setFontSize(16);
+        doc.setTextColor(27, 67, 50);
+        doc.text('Education', 20, 45);
+        doc.setLineWidth(0.5);
+        doc.setDrawColor(149, 213, 178); // #95D5B2
+        doc.line(20, 48, 190, 48);
+        
+        let yPos = 55;
+        userData.education.forEach((edu: Education) => {
+          doc.setFontSize(14);
+          doc.setTextColor(45, 106, 79); // #2D6A4F
+          doc.text(edu.degree, 20, yPos);
+          
+          doc.setFontSize(12);
+          doc.setTextColor(0, 0, 0);
+          doc.text(edu.institution, 20, yPos + 7);
+          
+          doc.setFontSize(11);
+          doc.setTextColor(85, 85, 85);
+          doc.text(edu.year, 20, yPos + 14);
+          
+          if (edu.description) {
+            doc.setFontSize(10);
+            doc.setTextColor(50, 50, 50);
+            const descLines = doc.splitTextToSize(edu.description, 170);
+            doc.text(descLines, 20, yPos + 22);
+            yPos += 22 + (descLines.length * 5);
+          } else {
+            yPos += 22;
+          }
+        });
+      }
+  
+      // Save PDF with name
+      doc.save(`${userData.name.replace(/\s+/g, '_')}_CV.pdf`);
+    }
+  };
+  
+
+  const generateCVDocument = (userData: any) => {
+    // Format dates nicely
+    const formatDate = (dateStr: string | null) => {
+      if (!dateStr) return 'Present';
+      return new Date(dateStr).toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'long'
+      });
+    };
+  
+    // Get today's date for CV generation date
+    const today = new Date().toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  
+    // Generate HTML for education section
+    const educationSection = userData.education.map((edu: Education) => `
+      <div class="cv-item">
+        <h3>${edu.degree}</h3>
+        <h4>${edu.institution}</h4>
+        <p class="cv-date">${edu.year}</p>
+        ${edu.gpa ? `<p class="cv-gpa">GPA: ${edu.gpa}</p>` : ''}
+        ${edu.description ? `<p class="cv-description">${edu.description}</p>` : ''}
+      </div>
+    `).join('');
+  
+    // Generate HTML for experience section
+    const experienceSection = userData.experience.map((exp: Experience) => `
+      <div class="cv-item">
+        <h3>${exp.title}</h3>
+        <h4>${exp.company} - ${exp.employmentType}</h4>
+        <p class="cv-date">${formatDate(exp.startDate)} - ${formatDate(exp.endDate)}</p>
+        <p class="cv-location">${exp.location} (${exp.locationType})</p>
+        ${exp.description ? `<p class="cv-description">${exp.description}</p>` : ''}
+      </div>
+    `).join('');
+  
+    // Generate HTML for certifications section
+    const certificationsSection = userData.certifications.map((cert: Certification) => `
+      <div class="cv-item">
+        <h3>${cert.name}</h3>
+        <h4>${cert.issuingOrganization}</h4>
+        <p class="cv-date">Issued: ${formatDate(cert.issueDate)} ${cert.expirationDate ? `- Expires: ${formatDate(cert.expirationDate)}` : ''}</p>
+        ${cert.credentialId ? `<p class="cv-credential">Credential ID: ${cert.credentialId}</p>` : ''}
+        ${cert.skills?.length > 0 ? `<p class="cv-skills">Skills: ${cert.skills.join(', ')}</p>` : ''}
+        ${cert.description ? `<p class="cv-description">${cert.description}</p>` : ''}
+      </div>
+    `).join('');
+  
+    // Create full HTML document with CSS styling
+    return `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>${userData.name} - Curriculum Vitae</title>
+        <style>
+          body {
+            font-family: 'Arial', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem;
+          }
+          .cv-header {
+            border-bottom: 2px solid #1B4332;
+            padding-bottom: 1rem;
+            margin-bottom: 2rem;
+            text-align: center;
+          }
+          .cv-name {
+            font-size: 2.2rem;
+            margin: 0;
+            color: #1B4332;
+          }
+          .cv-contact {
+            margin: 0.5rem 0;
+            font-size: 1rem;
+            color: #555;
+          }
+          .cv-section {
+            margin-bottom: 2rem;
+          }
+          .cv-section-title {
+            font-size: 1.5rem;
+            color: #1B4332;
+            border-bottom: 1px solid #95D5B2;
+            padding-bottom: 0.5rem;
+            margin-bottom: 1rem;
+          }
+          .cv-item {
+            margin-bottom: 1.5rem;
+          }
+          .cv-item h3 {
+            font-size: 1.2rem;
+            margin: 0 0 0.25rem 0;
+            color: #2D6A4F;
+          }
+          .cv-item h4 {
+            font-size: 1.1rem;
+            margin: 0 0 0.25rem 0;
+            font-weight: normal;
+          }
+          .cv-date, .cv-location, .cv-credential, .cv-gpa {
+            font-style: italic;
+            margin: 0.25rem 0;
+            color: #555;
+          }
+          .cv-description, .cv-skills {
+            margin: 0.5rem 0;
+          }
+          .cv-skills {
+            font-weight: 500;
+          }
+          .cv-footer {
+            margin-top: 2rem;
+            text-align: center;
+            font-size: 0.9rem;
+            color: #777;
+            border-top: 1px solid #ddd;
+            padding-top: 1rem;
+          }
+          @media print {
+            body {
+              padding: 0;
+            }
+            .cv-header {
+              padding-bottom: 0.5rem;
+              margin-bottom: 1rem;
+            }
+            .cv-section {
+              margin-bottom: 1rem;
+            }
+            .cv-section-title {
+              padding-bottom: 0.3rem;
+              margin-bottom: 0.5rem;
+            }
+            .cv-item {
+              margin-bottom: 0.8rem;
+            }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="cv-header">
+          <h1 class="cv-name">${userData.name}</h1>
+          <p class="cv-contact">${userData.email} | ${userData.role}</p>
+        </div>
+        
+        ${userData.education.length > 0 ? `
+        <div class="cv-section">
+          <h2 class="cv-section-title">Education</h2>
+          ${educationSection}
+        </div>
+        ` : ''}
+        
+        ${userData.experience.length > 0 ? `
+        <div class="cv-section">
+          <h2 class="cv-section-title">Professional Experience</h2>
+          ${experienceSection}
+        </div>
+        ` : ''}
+        
+        ${userData.certifications.length > 0 ? `
+        <div class="cv-section">
+          <h2 class="cv-section-title">Certifications</h2>
+          ${certificationsSection}
+        </div>
+        ` : ''}
+        
+        <div class="cv-footer">
+          <p>Generated on ${today} | CCIS Faculty Profile Management System</p>
+        </div>
+      </body>
+      </html>
+    `;
+  };
+
   const handleCertificationSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const form = e.currentTarget;
@@ -1123,6 +1392,7 @@ useEffect(() => {
           transition={{ duration: 0.5 }}
         >
           <h1 className="text-[#95D5B2] text-xl font-medium">Admin Dashboard</h1>
+
           <motion.button
             className="inline-flex items-center gap-2 bg-[#95D5B2] text-[#081C15] px-4 py-2 rounded-md text-sm font-medium"
             whileHover={{
@@ -1130,6 +1400,7 @@ useEffect(() => {
               boxShadow: "0 10px 15px -3px rgba(149, 213, 178, 0.2)",
             }}
             transition={{ type: "spring", stiffness: 300 }}
+            
           >
             <FileText size={16} />
             Generate Report
@@ -1913,17 +2184,60 @@ const handleDocumentSubmit = (e: React.FormEvent<HTMLFormElement>) => {
           transition={{ duration: 0.5 }}
         >
           <h1 className="text-[#95D5B2] text-xl font-medium">My Overview</h1>
-          <motion.button
-            className="inline-flex items-center gap-2 bg-[#95D5B2] text-[#081C15] px-4 py-2 rounded-md text-sm font-medium"
-            whileHover={{
-              y: -2,
-              boxShadow: "0 10px 15px -3px rgba(149, 213, 178, 0.2)",
-            }}
-            transition={{ type: "spring", stiffness: 300 }}
-          >
-            <FileText size={16} />
-            Generate CV
-          </motion.button>
+ 
+<div className="relative inline-block">
+  <motion.button
+    className="inline-flex items-center gap-2 bg-[#95D5B2] text-[#081C15] px-4 py-2 rounded-md text-sm font-medium"
+    whileHover={{
+      y: -2,
+      boxShadow: "0 10px 15px -3px rgba(149, 213, 178, 0.2)",
+    }}
+    transition={{ type: "spring", stiffness: 300 }}
+    onClick={() => setShowFormatOptions(!showFormatOptions)}
+  >
+    <FileText size={16} />
+    Generate CV
+    <svg 
+      xmlns="http://www.w3.org/2000/svg"
+      width="16" 
+      height="16" 
+      viewBox="0 0 24 24" 
+      fill="none" 
+      stroke="currentColor" 
+      strokeWidth="2" 
+      strokeLinecap="round" 
+      strokeLinejoin="round" 
+      className="ml-1"
+    >
+      <path d="M6 9l6 6 6-6"/>
+    </svg>
+  </motion.button>
+  
+  {showFormatOptions && (
+    <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-50">
+      <div className="py-1">
+        <button 
+          className="block w-full text-left px-4 py-2 text-gray-800 hover:bg-[#95D5B2] hover:text-[#081C15]"
+          onClick={() => {
+            generateCV('html');
+            setShowFormatOptions(false);
+          }}
+        >
+          Download as HTML
+        </button>
+        <button 
+          className="block w-full text-left px-4 py-2 text-gray-800 hover:bg-[#95D5B2] hover:text-[#081C15]"
+          onClick={() => {
+            generateCV('pdf');
+            setShowFormatOptions(false);
+          }}
+        >
+          Download as PDF
+        </button>
+      </div>
+    </div>
+  )}
+</div>
         </motion.header>
 
         {/* Main content area */}
