@@ -140,6 +140,42 @@ const { data: session, status } = useSession();
 const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 const [educationToDelete, setEducationToDelete] = useState<Education | null>(null);
 const [isDeleting, setIsDeleting] = useState(false);
+const [documentsData, setDocumentsData] = useState<Document[]>([]);
+
+
+// Add these helper functions at the top of your file, after imports:
+
+const localStorageKeys = {
+  education: 'fpms_education',
+  experience: 'fpms_experience', 
+  certifications: 'fpms_certifications',
+  documents: 'fpms_documents'
+};
+
+const getFromStorage = <T,>(key: string, initialData: T[]): T[] => {
+  if (typeof window === 'undefined') return initialData;
+  
+  try {
+    const storedData = localStorage.getItem(key);
+    return storedData ? JSON.parse(storedData) : initialData;
+  } catch (error) {
+    console.error(`Error reading ${key} from localStorage:`, error);
+    return initialData;
+  }
+};
+
+const saveToStorage = <T,>(key: string, data: T[]): void => {
+  if (typeof window === 'undefined') return;
+  
+  try {
+    localStorage.setItem(key, JSON.stringify(data));
+  } catch (error) {
+    console.error(`Error saving ${key} to localStorage:`, error);
+  }
+};
+
+
+
 
 // Add these functions to your component:
 const handleDeleteEducation = (education: Education) => {
@@ -158,17 +194,21 @@ const confirmDeleteEducation = async () => {
   setIsDeleting(true);
   
   try {
-    await axios.delete(`/api/education/${educationToDelete._id}`);
+    // Get current data
+    const currentData = getFromStorage(localStorageKeys.education, []);
     
-    // Remove the deleted education from the local state
-    setEducationData(prevData => 
-      prevData.filter(edu => edu._id !== educationToDelete._id)
-    );
+    // Filter out the item to delete
+    const updatedData = currentData.filter(edu => edu._id !== educationToDelete._id);
+    
+    // Save to localStorage
+    saveToStorage(localStorageKeys.education, updatedData);
+    
+    // Update state
+    setEducationData(updatedData);
     
     closeDeleteModal();
   } catch (error) {
     console.error("Error deleting education:", error);
-    // Handle error - maybe show an error message
   } finally {
     setIsDeleting(false);
   }
@@ -176,53 +216,214 @@ const confirmDeleteEducation = async () => {
 
 
 // Then update your useEffect that fetches data:
+// Replace your useEffect for fetching data with this:
 useEffect(() => {
-  if (!session) return;
-  
-  const fetchData = async () => {
-    setIsLoading(true); // Start loading
+  // Load initial data from localStorage
+  const loadLocalData = () => {
+    setIsLoading(true);
     try {
-      const res = await axios.get(`/api/education?userID=${session?.user?.id}`);
-      const resXp = await axios.get(`/api/experience?userID=${session?.user?.id}`);
+      // Get initial sample data or existing localStorage data
+      const typedEducationData = getFromStorage(localStorageKeys.education, [
+        {
+          _id: '1',
+          degree: "Ph.D. in Computer Science",
+          institution: "Stanford University",
+          year: "2018-2022",
+          description: "Research focus on artificial intelligence and machine learning algorithms.",
+          gpa: "3.92/4.0"
+        },
+        {
+          _id: '2',
+          degree: "Master of Science in Data Analytics",
+          institution: "MIT",
+          year: "2016-2018",
+          description: "Specialized in big data processing and statistical analysis.",
+          gpa: "3.85/4.0"
+        },
+        {
+          _id: '3',
+          degree: "Bachelor of Engineering in Computer Science",
+          institution: "University of California, Berkeley",
+          year: "2012-2016",
+          description: "Focus on software engineering and database systems.",
+          gpa: "3.78/4.0"
+        }
+      ]);
+
       
-      // Log for debugging
-      console.log("Fetched education data:", res.data);
-      console.log("Fetched experience data:", resXp.data);
       
-      // Check if data exists and is an array
-      setEducationData(Array.isArray(res.data) ? res.data : []);
-      setExperiencesData(Array.isArray(resXp.data) ? resXp.data : []);
+      const typedExperienceData = getFromStorage(localStorageKeys.experience, [
+        {
+          _id: '1',
+          title: "Senior Software Engineer",
+          employmentType: "Full-time",
+          company: "Tech Innovations Inc.",
+          isCurrentRole: true,
+          startDate: "Jan 2022",
+          endDate: null,
+          location: "San Francisco, CA",
+          locationType: "On-site",
+          description: "Leading development of cloud-based applications using React, Node.js, and AWS. Managing a team of 5 engineers."
+        },
+        {
+          _id: '2',
+          title: "Software Developer",
+          employmentType: "Full-time",
+          company: "DataSync Systems",
+          isCurrentRole: false,
+          startDate: "Mar 2019",
+          endDate: "Dec 2021",
+          location: "Boston, MA",
+          locationType: "Hybrid",
+          description: "Developed and maintained backend services for data synchronization products."
+        },
+        {
+          _id: '3',
+          title: "Junior Developer",
+          employmentType: "Contract",
+          company: "WebFront Solutions",
+          isCurrentRole: false,
+          startDate: "Jun 2017",
+          endDate: "Feb 2019",
+          location: "Remote",
+          locationType: "Remote",
+          description: "Built responsive web interfaces for various clients using HTML5, CSS3, and JavaScript frameworks."
+        }
+      ]);
+
+      const mappedExperienceData = typedExperienceData.map(exp => ({
+        id: parseInt(exp._id) || Math.floor(Math.random() * 10000),
+        title: exp.title || '',
+        employmentType: exp.employmentType || '',
+        company: exp.company || '',
+        isCurrentRole: exp.isCurrentRole || false,
+        startDate: exp.startDate || '',
+        endDate: exp.endDate,
+        location: exp.location || '',
+        locationType: exp.locationType || '',
+        description: exp.description || ''
+      }));
+
+      const mappedEducationData = typedEducationData.map(edu => ({
+        id: parseInt(edu._id) || Math.floor(Math.random() * 10000),
+        degree: edu.degree || '',
+        institution: edu.institution || '',
+        year: edu.year || '',
+        description: edu.description || '',
+        gpa: edu.gpa || ''
+      }));
+      
+      const typedCertificationsData = getFromStorage(localStorageKeys.certifications, [
+        {
+          _id: '1',
+          name: "AWS Certified Solutions Architect - Professional",
+          issuingOrganization: "Amazon Web Services (AWS)",
+          issueDate: "2023-05-15",
+          expirationDate: "2026-05-15",
+          credentialId: "AWS-CSAP-12345",
+          credentialURL: "https://aws.amazon.com/verification",
+          certificationType: "Professional",
+          skills: ["Cloud Architecture", "AWS Services", "Security", "Networking"],
+          description: "Validates advanced knowledge of AWS architecture design and implementation.",
+          imageUrl: "https://example.com/aws-cert.jpg",
+          status: 'active'
+        },
+        {
+          _id: '2',
+          name: "Project Management Professional (PMP)",
+          issuingOrganization: "Project Management Institute",
+          issueDate: "2022-11-10",
+          expirationDate: "2025-11-10",
+          credentialId: "PMP-123456",
+          credentialURL: "https://pmi.org/certifications/verify",
+          certificationType: "Professional",
+          skills: ["Project Management", "Leadership", "Risk Management", "Scheduling"],
+          description: "Internationally recognized professional designation for project managers.",
+          imageUrl: "https://example.com/pmp-cert.jpg",
+          status: 'expiring'
+        },
+        {
+          _id: '3',
+          name: "Certified Information Systems Security Professional (CISSP)",
+          issuingOrganization: "ISC²",
+          issueDate: "2021-08-22",
+          expirationDate: "2024-08-22",
+          credentialId: "CISSP-987654",
+          credentialURL: "https://isc2.org/verify",
+          certificationType: "Security",
+          skills: ["Information Security", "Risk Management", "Network Security", "Cryptography"],
+          description: "An advanced-level certification for IT security professionals.",
+          imageUrl: "https://example.com/cissp-cert.jpg",
+          status: 'expiring'
+        }
+      ]);
+
+      const mappedCertificationsData = typedCertificationsData.map(cert => ({
+        id: parseInt(cert._id) || Math.floor(Math.random() * 10000),
+        name: cert.name || '',
+        issuingOrganization: cert.issuingOrganization || '',
+        issueDate: cert.issueDate || '',
+        expirationDate: cert.expirationDate,
+        credentialId: cert.credentialId || '',
+        credentialURL: cert.credentialURL,
+        certificationType: cert.certificationType || '',
+        skills: cert.skills || [],
+        description: cert.description || '',
+        imageUrl: cert.imageUrl,
+        status: cert.status || 'active'
+      }));
+
+      const typedDocumentsData = getFromStorage(localStorageKeys.documents, documentsData);
+      
+      const mappedDocumentsData = typedDocumentsData.map(doc => ({
+        id: parseInt(doc._id) || Math.floor(Math.random() * 10000),
+        title: doc.title || '',
+        description: doc.description || '',
+        fileName: doc.fileName || '',
+        fileType: doc.fileType || '',
+        fileSize: doc.fileSize || '',
+        uploadDate: doc.uploadDate || new Date().toISOString().split('T')[0],
+        fileUrl: doc.fileUrl || '',
+        tags: doc.tags || []
+      }));
+
+      setDocumentsData(mappedDocumentsData);
+
+
+      setEducationData(mappedEducationData);
+      setExperiencesData(mappedExperienceData);
+      setCertificationsData(mappedCertificationsData);
+      
     } catch (error) {
-      console.error("Error fetching data:", error);
+      console.error('Error loading local data:', error);
     } finally {
-      setIsLoading(false); // End loading regardless of outcome
+      setIsLoading(false);
     }
-  }
-  
-  fetchData();
-}, [session]);
+  };
+
+  loadLocalData();
+}, []);
 
 
+  // useEffect(() => {
+  //   if (!session) return; // Wait for session to be available
 
-  useEffect(() => {
-    if (!session) return; // Wait for session to be available
+  //   const fetchData = async () => {
+  //     try {
+  //       const resEducation = await axios.get(`/api/education?userID=${session?.user?.id}`);
+  //       const resExperience = await axios.get(`/api/experience?userID=${session?.user?.id}`);
+  //       const resCertifications = await axios.get(`/api/certifications?userID=${session?.user?.id}`);
 
-    const fetchData = async () => {
-      try {
-        const resEducation = await axios.get(`/api/education?userID=${session?.user?.id}`);
-        const resExperience = await axios.get(`/api/experience?userID=${session?.user?.id}`);
-        const resCertifications = await axios.get(`/api/certifications?userID=${session?.user?.id}`);
+  //       setEducationData(resEducation.data);
+  //       setExperiencesData(resExperience.data);
+  //       setCertificationsData(resCertifications.data);
+  //     } catch (error) {
+  //       console.error('Error fetching data:', error);
+  //     }
+  //   }
 
-        setEducationData(resEducation.data);
-        setExperiencesData(resExperience.data);
-        setCertificationsData(resCertifications.data);
-      } catch (error) {
-        console.error('Error fetching data:', error);
-      }
-    }
-
-    fetchData();
-  }, [session]);
+  //   fetchData();
+  // }, [session]);
 
 
   if (status == "loading") return <LoadingScreen />;
@@ -235,9 +436,9 @@ useEffect(() => {
   const handleEducationSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const form = e.currentTarget;
-  
-    const body = {
-      user: session?.user?.id,
+    
+    const newEducation = {
+      _id: selectedEducation?._id || String(Date.now()), // Use existing ID or create new one
       degree: form.degree.value,
       institution: form.institution.value,
       year: form.year.value,
@@ -246,33 +447,29 @@ useEffect(() => {
     };
   
     try {
-      console.log("Submitting education data:", body);
+      const currentData = getFromStorage(localStorageKeys.education, []);
+      let updatedData;
       
-      const res = await axios.post('/api/education', body, {
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
-  
-      console.log("Education submission response:", res.data);
-  
-      if (res.status === 200) {
-        // Add the new education to the local state
-        const newEducation = res.data;
-        
-        // Make sure we're adding all fields from the response
-        setEducationData(prevData => {
-          console.log("Previous education data:", prevData);
-          console.log("Adding new education:", newEducation);
-          return [...prevData, newEducation];
-        });
-        
-        // Close the modal
-        setIsEditModalOpen(false);
+      if (selectedEducation) {
+        // Update existing education
+        updatedData = currentData.map(item => 
+          item._id === selectedEducation._id ? newEducation : item
+        );
+      } else {
+        // Add new education
+        updatedData = [...currentData, newEducation];
       }
+      
+      // Save to localStorage
+      saveToStorage(localStorageKeys.education, updatedData);
+      
+      // Update state
+      setEducationData(updatedData);
+      
+      // Close the modal
+      setIsEditModalOpen(false);
     } catch (error) {
       console.error("Error submitting education:", error);
-      // Optional: Add error handling UI here
     }
   };
 
@@ -282,79 +479,112 @@ useEffect(() => {
     // Use FormData to reliably get form values
     const formData = new FormData(e.currentTarget);
     
-    // Debug what fields are available
-    console.log("Form data entries:", Array.from(formData.entries()));
-    
-    // Build the body object safely
-    const body = {
+    const newExperience = {
+      _id: selectedExperience?._id || String(Date.now()),
       title: formData.get('title') as string || '',
       employmentType: formData.get('employmentType') as string || '',
       company: formData.get('company') as string || '',
-      isCurrentRole: formData.get('isCurrentRole') === 'on', // Checkbox handling
+      isCurrentRole: formData.get('isCurrentRole') === 'on',
       startDate: formData.get('startDate') as string || '',
       endDate: formData.get('endDate') as string || '',
       location: formData.get('location') as string || '',
       locationType: formData.get('locationType') as string || '',
       description: formData.get('description') as string || '',
-      user: session?.user?.id,
     };
-    
-    console.log("Request body:", body);
   
     try {
-      const res = await axios.post('/api/experience', body, {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-  
-      if (res.status === 200) {
-        // Optional: Update local state with the new experience
-        const newExperience = res.data;
-        setExperiencesData(prev => [...prev, newExperience]);
-        
-        // Close the modal
-        setIsExperienceModalOpen(false);
+      const currentData = getFromStorage(localStorageKeys.experience, []);
+      let updatedData;
+      
+      if (selectedExperience) {
+        // Update existing experience
+        updatedData = currentData.map(item => 
+          item._id === selectedExperience._id ? newExperience : item
+        );
+      } else {
+        // Add new experience
+        updatedData = [...currentData, newExperience];
       }
+      
+      // Save to localStorage
+      saveToStorage(localStorageKeys.experience, updatedData);
+      
+      // Update state
+      setExperiencesData(updatedData);
+      
+      // Close the modal
+      setIsExperienceModalOpen(false);
     } catch (error) {
       console.error('Error submitting experience:', error);
     }
   };
-
   const handleCertificationSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-  e.preventDefault();
-
-  const form = e.currentTarget;
-
-  const body = {
-    name: form.name.value,
-    issuingOrganization: form.issuingOrganization.value,
-    issueDate: form.issueDate.value,
-    skills: form.skills.value,
-    expirationDate: form.expirationDate.value,
-    credentialId: form.credentialId.value,
-    credentialURL: form.credentialURL.value,
-    description: form.description.value,
-    user: session?.user?.id,
-  };
-
-  console.log("Certification Data Submitted:", body);
-
-  try {
-    const res = await axios.post('/api/certifications', body, {
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (res.status === 200) {
+    e.preventDefault();
+    const form = e.currentTarget;
+    
+    // Extract skills from comma-separated string
+    const skillsInput = form.skills.value;
+    const skillsArray = skillsInput.split(',').map(skill => skill.trim()).filter(Boolean);
+  
+    const newCertification = {
+      _id: selectedCertification?._id || String(Date.now()),
+      name: form.name.value,
+      issuingOrganization: form.issuingOrganization.value,
+      issueDate: form.issueDate.value,
+      expirationDate: form.expirationDate.value,
+      credentialId: form.credentialId.value,
+      credentialURL: form.credentialURL.value,
+      certificationType: form.certificationType.value,
+      skills: skillsArray,
+      description: form.description.value,
+      imageUrl: previewImage,
+      status: getExpirationStatus(form.expirationDate.value)
+    };
+  
+    try {
+      const currentData = getFromStorage(localStorageKeys.certifications, []);
+      let updatedData;
+      
+      if (selectedCertification) {
+        // Update existing certification
+        updatedData = currentData.map(item => 
+          item._id === selectedCertification._id ? newCertification : item
+        );
+      } else {
+        // Add new certification
+        updatedData = [...currentData, newCertification];
+      }
+      
+      // Save to localStorage
+      saveToStorage(localStorageKeys.certifications, updatedData);
+      
+      // Update state
+      setCertificationsData(updatedData);
+      
+      // Close the modal
       setIsCertModalOpen(false);
-      console.log("Certification successfully submitted.");
+    } catch (error) {
+      console.error("Error submitting certification:", error);
     }
-  } catch (error) {
-    console.error("Error submitting certification:", error);
-  }
-};
+  };
+  
+  // Helper function to determine certification status
+  const getExpirationStatus = (expirationDate: string): 'active' | 'expiring' | 'expired' => {
+    if (!expirationDate) return 'active';
+    
+    const today = new Date();
+    const expiry = new Date(expirationDate);
+    const ninetyDaysFromNow = new Date();
+    ninetyDaysFromNow.setDate(today.getDate() + 90);
+  
+    if (expiry < today) {
+      return 'expired';
+    } else if (expiry <= ninetyDaysFromNow) {
+      return 'expiring';
+    } else {
+      return 'active';
+    }
+  };
 
   const buttons = [
     {
@@ -1011,52 +1241,6 @@ useEffect(() => {
     );
   };
 
-  const documentsData: Document[] = [
-    {
-      id: 1,
-      title: "Research Publication: AI in Education",
-      description: "Published research paper on artificial intelligence applications in educational settings",
-      fileName: "ai-education-research.pdf",
-      fileType: "PDF",
-      fileSize: "2.4 MB",
-      uploadDate: "2025-02-15",
-      fileUrl: "https://example.com/documents/ai-research.pdf",
-      tags: ["Research", "AI", "Education"]
-    },
-    {
-      id: 2,
-      title: "Course Syllabus: Advanced Database Systems",
-      description: "Course outline and requirements for CS461 Advanced Database Systems",
-      fileName: "cs461-syllabus-2025.docx",
-      fileType: "Word",
-      fileSize: "1.1 MB",
-      uploadDate: "2025-01-10",
-      fileUrl: "https://example.com/documents/db-syllabus.docx",
-      tags: ["Syllabus", "Teaching", "Database"]
-    },
-    {
-      id: 3,
-      title: "Conference Presentation - SIGCSE 2025",
-      description: "Slides from keynote presentation on modern teaching methodologies",
-      fileName: "sigcse-presentation.pptx",
-      fileType: "PowerPoint",
-      fileSize: "5.7 MB",
-      uploadDate: "2025-03-22",
-      fileUrl: "https://example.com/documents/conference-slides.pptx",
-      tags: ["Conference", "Presentation", "Teaching"]
-    },
-    {
-      id: 4,
-      title: "Department Meeting Minutes",
-      description: "Minutes from the quarterly department planning meeting",
-      fileName: "meeting-minutes-jan2025.pdf",
-      fileType: "PDF",
-      fileSize: "0.8 MB",
-      uploadDate: "2025-01-25",
-      fileUrl: "https://example.com/documents/minutes.pdf",
-      tags: ["Administrative", "Meeting", "Planning"]
-    }
-  ];
 
   // ...existing code...
 
@@ -1082,6 +1266,83 @@ useEffect(() => {
       setDocumentFile(file);
     }
   };
+
+  // Add this to your localStorageKeys:
+// localStorageKeys = {
+//   education: 'fpms_education',
+//   experience: 'fpms_experience', 
+//   certifications: 'fpms_certifications',
+//   documents: 'fpms_documents'  // Ensure this exists
+// };
+
+const handleDocumentSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  e.preventDefault();
+  const form = e.currentTarget;
+  
+  const fileNameDisplay = documentFile ? documentFile.name : '';
+  const fileTypeDisplay = documentFile ? documentFile.type.split('/')[1].toUpperCase() : '';
+  const fileSizeDisplay = documentFile ? 
+    `${(documentFile.size / (1024 * 1024)).toFixed(2)} MB` : '';
+
+  const newDocument = {
+    _id: selectedDocument?._id || String(Date.now()),
+    title: form.title.value,
+    description: form.description.value,
+    fileName: fileNameDisplay,
+    fileType: fileTypeDisplay,
+    fileSize: fileSizeDisplay,
+    uploadDate: new Date().toISOString().split('T')[0],
+    fileUrl: selectedDocument?.fileUrl || URL.createObjectURL(documentFile),
+    tags: form.tags.value.split(',').map((tag: string) => tag.trim()).filter(Boolean)
+  };
+
+  try {
+    // Get current data
+    const currentData = getFromStorage(localStorageKeys.documents, []);
+    let updatedData;
+    
+    if (selectedDocument) {
+      // Update existing document
+      updatedData = currentData.map(item => 
+        item._id === selectedDocument._id ? newDocument : item
+      );
+    } else {
+      // Add new document
+      updatedData = [...currentData, newDocument];
+    }
+    
+    // Save to localStorage
+    saveToStorage(localStorageKeys.documents, updatedData);
+    
+    // Map the new document to match your state interface
+    const stateDocument = {
+      id: parseInt(newDocument._id) || Math.floor(Math.random() * 10000),
+      title: newDocument.title,
+      description: newDocument.description,
+      fileName: newDocument.fileName,
+      fileType: newDocument.fileType,
+      fileSize: newDocument.fileSize,
+      uploadDate: newDocument.uploadDate,
+      fileUrl: newDocument.fileUrl,
+      tags: newDocument.tags,
+    };
+    
+    // Update the documents state
+    setDocumentsData(prev => {
+      if (selectedDocument) {
+        return prev.map(doc => doc.id === selectedDocument.id ? stateDocument : doc);
+      } else {
+        return [...prev, stateDocument];
+      }
+    });
+    
+    // Reset form fields and close modal
+    setDocumentFile(null);
+    closeDocModal();
+  } catch (error) {
+    console.error("Error submitting document:", error);
+  }
+};
 
   const triggerDocumentFileInput = () => {
     documentFileRef.current?.click();
@@ -1290,7 +1551,7 @@ useEffect(() => {
                 </h2>
               </div>
               <div className="flex-1 overflow-y-auto custom-scrollbar p-6 pt-4">
-                <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
+                <form className="space-y-4" onSubmit={handleDocumentSubmit}>
                   {!selectedDocument && (
                     <div className="flex flex-col items-center border-2 border-dashed border-[#3B8F6F] rounded-md p-8 mb-6">
                       <input
@@ -1370,6 +1631,7 @@ useEffect(() => {
                       <input
                         type="text"
                         className="w-full bg-[#2D6A4F] text-white rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-[#95D5B2]"
+                        name="title"
                         defaultValue={selectedDocument?.title || ""}
                         placeholder="Enter a title for this document"
                       />
@@ -1379,6 +1641,7 @@ useEffect(() => {
                       <label className="block text-[#95D5B2] text-sm mb-1">Description</label>
                       <textarea
                         className="w-full bg-[#2D6A4F] text-white rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-[#95D5B2] min-h-[80px]"
+                        name="description"
                         defaultValue={selectedDocument?.description || ""}
                         placeholder="Describe the document contents and purpose"
                       ></textarea>
@@ -1388,6 +1651,7 @@ useEffect(() => {
                       <label className="block text-[#95D5B2] text-sm mb-1">Tags (comma separated)</label>
                       <input
                         type="text"
+                        name="tags"
                         className="w-full bg-[#2D6A4F] text-white rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-[#95D5B2]"
                         defaultValue={selectedDocument?.tags.join(", ") || ""}
                         placeholder="Research, Teaching, Administrative, etc."
@@ -2541,8 +2805,13 @@ useEffect(() => {
   // ];
 
   const handleEditExperience = (experience: Experience) => {
+    // Make sure we're setting the correct data
     setSelectedExperience(experience);
+    // This should open the modal
     setIsExperienceModalOpen(true);
+    
+    // For debugging
+    console.log("Opening modal with experience:", experience);
   };
 
   const handleAddNewExperience = () => {
@@ -2590,7 +2859,7 @@ useEffect(() => {
           <div className="grid grid-cols-1 gap-6">
             {experiencesData.map((experience, index) => (
               <motion.div
-                key={experience._id}
+                key={index}
                 className="bg-[#1B4332] rounded-lg p-5 shadow-sm"
                 variants={itemVariants}
                 whileHover={{ boxShadow: "0 4px 20px rgba(149, 213, 178, 0.1)" }}
