@@ -87,6 +87,7 @@ export default function Home() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedEducation, setSelectedEducation] = useState<Education | null>(null);
   const [educationData, setEducationData] = useState<Education[]>([]);
+  const [experiencesData, setExperiencesData] = useState<Experience[]>([]);
 
   const [isExperienceModalOpen, setIsExperienceModalOpen] = useState(false);
   const [selectedExperience, setSelectedExperience] = useState<Experience | null>(null);
@@ -138,8 +139,9 @@ export default function Home() {
     const fetchData = async () => {
       try {
         const res = await axios.get(`/api/education?userID=${session?.user?.id}`);
-        console.log("RES", res.data);
+        const resXp = await axios.get(`/api/experience?userID=${session?.user?.id}`);
         setEducationData(res.data);
+        setExperiencesData(resXp.data);
       } catch (error) {
         console.error(error);
       }
@@ -177,6 +179,39 @@ export default function Home() {
 
     if (res.status === 200) {
       setIsEditModalOpen(false);
+    }
+  };
+
+  const handleExperienceSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const form = e.currentTarget;
+
+    const body = {
+      title: form.title.value,
+      employmentType: form.employmentType.value,
+      company: form.company.value,
+      isCurrentRole: form.isCurrentRole.checked,
+      startDate: form.startDate.value,
+      endDate: form.endDate.value,
+      location: form.location.value,
+      locationType: form.locationType.value,
+      description: form.description.value,
+      user: session?.user?.id,
+    };
+    console.log(body);
+
+    try {
+      const res = await axios.post('/api/experience', body, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (res.status === 200) {
+        setIsExperienceModalOpen(false);
+      }
+    } catch (error) {
+      console.error('Error submitting experience:', error);
     }
   };
 
@@ -2216,44 +2251,44 @@ export default function Home() {
     );
   };
 
-  const experiencesData: Experience[] = [
-    {
-      id: 1,
-      title: "Senior Software Engineer",
-      employmentType: "Full-time",
-      company: "Tech Innovations Inc.",
-      isCurrentRole: true,
-      startDate: "Jan 2022",
-      endDate: null,
-      location: "San Francisco, CA",
-      locationType: "On-site",
-      description: "Leading development of cloud-based applications using React, Node.js, and AWS. Managing a team of 5 engineers and coordinating with product managers for feature development."
-    },
-    {
-      id: 2,
-      title: "Software Developer",
-      employmentType: "Full-time",
-      company: "DataSync Systems",
-      isCurrentRole: false,
-      startDate: "Mar 2019",
-      endDate: "Dec 2021",
-      location: "Boston, MA",
-      locationType: "Hybrid",
-      description: "Developed and maintained backend services for data synchronization products. Improved system performance by 40% through code optimization and architectural improvements."
-    },
-    {
-      id: 3,
-      title: "Junior Developer",
-      employmentType: "Contract",
-      company: "WebFront Solutions",
-      isCurrentRole: false,
-      startDate: "Jun 2017",
-      endDate: "Feb 2019",
-      location: "Remote",
-      locationType: "Remote",
-      description: "Built responsive web interfaces for various clients using HTML5, CSS3, and JavaScript frameworks. Collaborated with design teams to implement pixel-perfect designs."
-    }
-  ];
+  // const experiencesData: Experience[] = [
+  //   {
+  //     id: 1,
+  //     title: "Senior Software Engineer",
+  //     employmentType: "Full-time",
+  //     company: "Tech Innovations Inc.",
+  //     isCurrentRole: true,
+  //     startDate: "Jan 2022",
+  //     endDate: null,
+  //     location: "San Francisco, CA",
+  //     locationType: "On-site",
+  //     description: "Leading development of cloud-based applications using React, Node.js, and AWS. Managing a team of 5 engineers and coordinating with product managers for feature development."
+  //   },
+  //   {
+  //     id: 2,
+  //     title: "Software Developer",
+  //     employmentType: "Full-time",
+  //     company: "DataSync Systems",
+  //     isCurrentRole: false,
+  //     startDate: "Mar 2019",
+  //     endDate: "Dec 2021",
+  //     location: "Boston, MA",
+  //     locationType: "Hybrid",
+  //     description: "Developed and maintained backend services for data synchronization products. Improved system performance by 40% through code optimization and architectural improvements."
+  //   },
+  //   {
+  //     id: 3,
+  //     title: "Junior Developer",
+  //     employmentType: "Contract",
+  //     company: "WebFront Solutions",
+  //     isCurrentRole: false,
+  //     startDate: "Jun 2017",
+  //     endDate: "Feb 2019",
+  //     location: "Remote",
+  //     locationType: "Remote",
+  //     description: "Built responsive web interfaces for various clients using HTML5, CSS3, and JavaScript frameworks. Collaborated with design teams to implement pixel-perfect designs."
+  //   }
+  // ];
 
   const handleEditExperience = (experience: Experience) => {
     setSelectedExperience(experience);
@@ -2303,9 +2338,9 @@ export default function Home() {
           animate="show"
         >
           <div className="grid grid-cols-1 gap-6">
-            {experiencesData.map((experience) => (
+            {experiencesData.map((experience, index) => (
               <motion.div
-                key={experience.id}
+                key={experience._id}
                 className="bg-[#1B4332] rounded-lg p-5 shadow-sm"
                 variants={itemVariants}
                 whileHover={{ boxShadow: "0 4px 20px rgba(149, 213, 178, 0.1)" }}
@@ -2374,11 +2409,12 @@ export default function Home() {
               <h2 className="text-white text-xl font-medium mb-4">
                 {selectedExperience ? "Edit Experience" : "Add New Experience"}
               </h2>
-              <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
+              <form className="space-y-4" onSubmit={handleExperienceSubmit}>
                 <div>
                   <label className="block text-[#95D5B2] text-sm mb-1">Title</label>
                   <input
                     type="text"
+                    name="title"
                     className="w-full bg-[#2D6A4F] text-white rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-[#95D5B2]"
                     defaultValue={selectedExperience?.title || ""}
                   />
@@ -2387,6 +2423,7 @@ export default function Home() {
                 <div>
                   <label className="block text-[#95D5B2] text-sm mb-1">Employment Type</label>
                   <select
+                    name="employmentType"
                     className="w-full bg-[#2D6A4F] text-white rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-[#95D5B2]"
                     defaultValue={selectedExperience?.employmentType || ""}
                   >
@@ -2404,6 +2441,7 @@ export default function Home() {
                   <label className="block text-[#95D5B2] text-sm mb-1">Company/Organization</label>
                   <input
                     type="text"
+                    name="company"
                     className="w-full bg-[#2D6A4F] text-white rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-[#95D5B2]"
                     defaultValue={selectedExperience?.company || ""}
                   />
@@ -2426,6 +2464,7 @@ export default function Home() {
                     <label className="block text-[#95D5B2] text-sm mb-1">Start Date</label>
                     <input
                       type="month"
+                      name="startDate"
                       className="w-full bg-[#2D6A4F] text-white rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-[#95D5B2]"
                       defaultValue={selectedExperience?.startDate || ""}
                     />
@@ -2434,6 +2473,7 @@ export default function Home() {
                     <label className="block text-[#95D5B2] text-sm mb-1">End Date</label>
                     <input
                       type="month"
+                      name="endDate"
                       className="w-full bg-[#2D6A4F] text-white rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-[#95D5B2]"
                       defaultValue={selectedExperience?.endDate || ""}
                       disabled={selectedExperience?.isCurrentRole || false}
@@ -2445,6 +2485,7 @@ export default function Home() {
                   <label className="block text-[#95D5B2] text-sm mb-1">Location</label>
                   <input
                     type="text"
+                    name="locationType"
                     className="w-full bg-[#2D6A4F] text-white rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-[#95D5B2]"
                     defaultValue={selectedExperience?.location || ""}
                   />
@@ -2466,6 +2507,7 @@ export default function Home() {
                 <div>
                   <label className="block text-[#95D5B2] text-sm mb-1">Description</label>
                   <textarea
+                    name="description"
                     className="w-full bg-[#2D6A4F] text-white rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-[#95D5B2] min-h-[100px]"
                     defaultValue={selectedExperience?.description || ""}
                     placeholder="Describe your responsibilities, achievements, and the skills you utilized in this role."
@@ -2493,8 +2535,9 @@ export default function Home() {
                 </div>
               </form>
             </motion.div>
-          </div>
-        )}
+          </div >
+        )
+        }
       </>
     );
   };
@@ -3521,10 +3564,10 @@ export default function Home() {
                           <div className="w-full bg-[#081C15] rounded-full h-1.5 mr-2 max-w-[120px]">
                             <div
                               className={`h-1.5 rounded-full ${faculty.sectionsCompleted === faculty.totalSections
+                                ? "bg-[#95D5B2]"
+                                : faculty.sectionsCompleted / faculty.totalSections > 0.6
                                   ? "bg-[#95D5B2]"
-                                  : faculty.sectionsCompleted / faculty.totalSections > 0.6
-                                    ? "bg-[#95D5B2]"
-                                    : "bg-[#F3A95A]"
+                                  : "bg-[#F3A95A]"
                                 }`}
                               style={{
                                 width: `${(faculty.sectionsCompleted / faculty.totalSections) * 100}%`,
