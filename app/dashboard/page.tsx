@@ -14,8 +14,9 @@ import {
   Briefcase
 } from "lucide-react";
 import { motion } from "framer-motion";
-import { useState , useRef} from "react";
+import { useState, useRef, useEffect } from "react";
 import CertificationScanner from "../components/Scanner";
+import axios from 'axios';
 
 interface Education {
   id: number;
@@ -60,6 +61,7 @@ export default function Home() {
   const [showDisplay, setshowDisplay] = useState("dashboard");
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedEducation, setSelectedEducation] = useState<Education | null>(null);
+  const [educationData, setEducationData] = useState<Education[]>([]);
 
   const [isExperienceModalOpen, setIsExperienceModalOpen] = useState(false);
   const [selectedExperience, setSelectedExperience] = useState<Experience | null>(null);
@@ -74,6 +76,20 @@ export default function Home() {
   const [autoFillingFields, setAutoFillingFields] = useState(false);
 
 
+  useEffect(() => {
+    if (!session) return;
+    const fetchData = async () => {
+      try {
+        const res = await axios.get(`/api/education?userID=${session?.user?.id}`);
+        console.log("RES", res.data);
+        setEducationData(res.data);
+      } catch (error) {
+        console.error(error);
+      }
+    }
+    fetchData();
+  }, []);
+
 
   const { data: session, status } = useSession();
   if (status == "loading") return <LoadingScreen />;
@@ -82,6 +98,31 @@ export default function Home() {
     redirect("/");
     return null;
   }
+
+  const handleEducationSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const form = e.currentTarget;
+
+    const body = {
+      user: session?.user?.id,
+      degree: form.degree.value,
+      institution: form.institution.value,
+      year: form.year.value,
+      gpa: form.gpa.value,
+      description: form.description.value,
+    };
+
+    const res = await axios.post('/api/education', body,
+      {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+    if (res.status === 200) {
+      setIsEditModalOpen(false);
+    }
+  };
 
   const buttons = [
     {
@@ -149,7 +190,7 @@ export default function Home() {
       description: "Validates advanced knowledge of AWS architecture design and implementation.",
       imageUrl: "https://example.com/aws-cert.jpg",
       status: 'active'
-    },{
+    }, {
       id: 2,
       name: "Project Management Professional (PMP)",
       issuingOrganization: "Project Management Institute",
@@ -185,14 +226,14 @@ export default function Home() {
     setFormData(certification); // Initialize form data with selected certification
     setIsCertModalOpen(true);
   };
-  
+
   const handleAddNewCertification = () => {
     setSelectedCertification(null);
     setPreviewImage(null);
     setFormData({}); // Clear form data
     setIsCertModalOpen(true);
   };
-  
+
   const closeCertModal = () => {
     setIsCertModalOpen(false);
     setPreviewImage(null);
@@ -211,7 +252,7 @@ export default function Home() {
       reader.readAsDataURL(file);
     }
   };
-  
+
   const triggerFileInput = () => {
     fileInputRef.current?.click();
   };
@@ -228,7 +269,7 @@ export default function Home() {
         return 'bg-[#2D6A4F] text-[#95D5B2]';
     }
   };
-  
+
 
   // Certificate expiration data
   const expiringCertificates = [
@@ -469,11 +510,10 @@ export default function Home() {
                       </div>
                     </div>
                     <span
-                      className={`text-xs px-2 py-0.5 rounded-full ${
-                        cert.daysLeft < 30
-                          ? "bg-[#081C15] text-[#F3A95A]"
-                          : "bg-[#081C15] text-[#95D5B2]"
-                      }`}
+                      className={`text - xs px - 2 py - 0.5 rounded - full ${cert.daysLeft < 30
+                        ? "bg-[#081C15] text-[#F3A95A]"
+                        : "bg-[#081C15] text-[#95D5B2]"
+                        }`}
                     >
                       {cert.daysLeft} days
                     </span>
@@ -499,48 +539,48 @@ export default function Home() {
     );
   };
 
-   
-    // Mock education data
-    const educationData = [
-      {
-        id: 1,
-        degree: "Ph.D. in Computer Science",
-        institution: "Stanford University",
-        year: "2018-2022",
-        description: "Research focus on artificial intelligence and machine learning algorithms.",
-        gpa: "3.92/4.0"
-      },
-      {
-        id: 2,
-        degree: "Master of Science in Data Analytics",
-        institution: "MIT",
-        year: "2016-2018",
-        description: "Specialized in big data processing and statistical analysis.",
-        gpa: "3.85/4.0"
-      },
-      {
-        id: 3,
-        degree: "Bachelor of Engineering in Computer Science",
-        institution: "University of California, Berkeley",
-        year: "2012-2016",
-        description: "Focus on software engineering and database systems.",
-        gpa: "3.78/4.0"
-      }
-    ];
-    
-    const handleEditEducation = (education: Education) => {
-      setSelectedEducation(education);
-      setIsEditModalOpen(true);
-    };
-    
-    const handleAddNew = () => {
-      setSelectedEducation(null);
-      setIsEditModalOpen(true);
-    };
-    
-    const closeModal = () => {
-      setIsEditModalOpen(false);
-    };
+
+  // Mock education data
+  // const educationData = [
+  //   {
+  //     id: 1,
+  //     degree: "Ph.D. in Computer Science",
+  //     institution: "Stanford University",
+  //     year: "2018-2022",
+  //     description: "Research focus on artificial intelligence and machine learning algorithms.",
+  //     gpa: "3.92/4.0"
+  //   },
+  //   {
+  //     id: 2,
+  //     degree: "Master of Science in Data Analytics",
+  //     institution: "MIT",
+  //     year: "2016-2018",
+  //     description: "Specialized in big data processing and statistical analysis.",
+  //     gpa: "3.85/4.0"
+  //   },
+  //   {
+  //     id: 3,
+  //     degree: "Bachelor of Engineering in Computer Science",
+  //     institution: "University of California, Berkeley",
+  //     year: "2012-2016",
+  //     description: "Focus on software engineering and database systems.",
+  //     gpa: "3.78/4.0"
+  //   }
+  // ];
+
+  const handleEditEducation = (education: Education) => {
+    setSelectedEducation(education);
+    setIsEditModalOpen(true);
+  };
+
+  const handleAddNew = () => {
+    setSelectedEducation(null);
+    setIsEditModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsEditModalOpen(false);
+  };
 
 
 
@@ -564,7 +604,7 @@ export default function Home() {
             onClick={handleAddNew}
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 5v14M5 12h14"/>
+              <path d="M12 5v14M5 12h14" />
             </svg>
             Add Education
           </motion.button>
@@ -580,7 +620,7 @@ export default function Home() {
           <div className="grid grid-cols-1 gap-6">
             {educationData.map((education, index) => (
               <motion.div
-                key={education.id}
+                key={index}
                 className="bg-[#1B4332] rounded-lg p-5 shadow-sm"
                 variants={itemVariants}
                 whileHover={{ boxShadow: "0 4px 20px rgba(149, 213, 178, 0.1)" }}
@@ -624,7 +664,7 @@ export default function Home() {
         {/* Edit Education Modal */}
         {isEditModalOpen && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <motion.div 
+            <motion.div
               className="bg-[#1B4332] rounded-lg p-6 w-full max-w-md"
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
@@ -633,42 +673,47 @@ export default function Home() {
               <h2 className="text-white text-xl font-medium mb-4">
                 {selectedEducation ? "Edit Education" : "Add New Education"}
               </h2>
-              <form className="space-y-4">
+              <form onSubmit={handleEducationSubmit} className="space-y-4">
                 <div>
                   <label className="block text-[#95D5B2] text-sm mb-1">Degree</label>
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
+                    name="degree"
                     className="w-full bg-[#2D6A4F] text-white rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-[#95D5B2]"
                     defaultValue={selectedEducation?.degree || ""}
                   />
                 </div>
                 <div>
                   <label className="block text-[#95D5B2] text-sm mb-1">Institution</label>
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
+                    name="institution"
                     className="w-full bg-[#2D6A4F] text-white rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-[#95D5B2]"
                     defaultValue={selectedEducation?.institution || ""}
                   />
                 </div>
                 <div>
                   <label className="block text-[#95D5B2] text-sm mb-1">Year</label>
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
+                    name="year"
                     className="w-full bg-[#2D6A4F] text-white rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-[#95D5B2]"
                     defaultValue={selectedEducation?.year || ""}
                   />
                 </div>
                 <div>
                   <label className="block text-[#95D5B2] text-sm mb-1">GPA</label>
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
+                    name="gpa"
                     className="w-full bg-[#2D6A4F] text-white rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-[#95D5B2]"
                     defaultValue={selectedEducation?.gpa || ""}
                   />
                 </div>
                 <div>
                   <label className="block text-[#95D5B2] text-sm mb-1">Description</label>
-                  <textarea 
+                  <textarea
+                    name="description"
                     className="w-full bg-[#2D6A4F] text-white rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-[#95D5B2] min-h-[100px]"
                     defaultValue={selectedEducation?.description || ""}
                   ></textarea>
@@ -743,12 +788,12 @@ export default function Home() {
     setSelectedExperience(experience);
     setIsExperienceModalOpen(true);
   };
-  
+
   const handleAddNewExperience = () => {
     setSelectedExperience(null);
     setIsExperienceModalOpen(true);
   };
-  
+
   const closeExperienceModal = () => {
     setIsExperienceModalOpen(false);
   };
@@ -773,12 +818,12 @@ export default function Home() {
             onClick={handleAddNewExperience}
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 5v14M5 12h14"/>
+              <path d="M12 5v14M5 12h14" />
             </svg>
             Add Experience
           </motion.button>
         </motion.header>
-  
+
         {/* Main content area */}
         <motion.div
           className="p-6"
@@ -845,12 +890,12 @@ export default function Home() {
             ))}
           </div>
         </motion.div>
-  
+
         {/* Experience Form Modal */}
         {isExperienceModalOpen && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <motion.div 
-              className="bg-[#1B4332] rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto custom-scrollbar" 
+            <motion.div
+              className="bg-[#1B4332] rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto custom-scrollbar"
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ type: "spring", stiffness: 300 }}
@@ -861,16 +906,16 @@ export default function Home() {
               <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
                 <div>
                   <label className="block text-[#95D5B2] text-sm mb-1">Title</label>
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     className="w-full bg-[#2D6A4F] text-white rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-[#95D5B2]"
                     defaultValue={selectedExperience?.title || ""}
                   />
                 </div>
-                
+
                 <div>
                   <label className="block text-[#95D5B2] text-sm mb-1">Employment Type</label>
-                  <select 
+                  <select
                     className="w-full bg-[#2D6A4F] text-white rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-[#95D5B2]"
                     defaultValue={selectedExperience?.employmentType || ""}
                   >
@@ -883,19 +928,19 @@ export default function Home() {
                     <option value="Volunteer">Volunteer</option>
                   </select>
                 </div>
-                
+
                 <div>
                   <label className="block text-[#95D5B2] text-sm mb-1">Company/Organization</label>
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     className="w-full bg-[#2D6A4F] text-white rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-[#95D5B2]"
                     defaultValue={selectedExperience?.company || ""}
                   />
                 </div>
-                
+
                 <div className="flex items-center">
-                  <input 
-                    type="checkbox" 
+                  <input
+                    type="checkbox"
                     id="isCurrentRole"
                     className="bg-[#2D6A4F] border-[#95D5B2] rounded text-[#95D5B2] focus:ring-[#95D5B2] h-4 w-4"
                     defaultChecked={selectedExperience?.isCurrentRole || false}
@@ -904,39 +949,39 @@ export default function Home() {
                     I am currently working in this role
                   </label>
                 </div>
-                
+
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-[#95D5B2] text-sm mb-1">Start Date</label>
-                    <input 
-                      type="month" 
+                    <input
+                      type="month"
                       className="w-full bg-[#2D6A4F] text-white rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-[#95D5B2]"
                       defaultValue={selectedExperience?.startDate || ""}
                     />
                   </div>
                   <div>
                     <label className="block text-[#95D5B2] text-sm mb-1">End Date</label>
-                    <input 
-                      type="month" 
+                    <input
+                      type="month"
                       className="w-full bg-[#2D6A4F] text-white rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-[#95D5B2]"
                       defaultValue={selectedExperience?.endDate || ""}
                       disabled={selectedExperience?.isCurrentRole || false}
                     />
                   </div>
                 </div>
-                
+
                 <div>
                   <label className="block text-[#95D5B2] text-sm mb-1">Location</label>
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     className="w-full bg-[#2D6A4F] text-white rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-[#95D5B2]"
                     defaultValue={selectedExperience?.location || ""}
                   />
                 </div>
-                
+
                 <div>
                   <label className="block text-[#95D5B2] text-sm mb-1">Location Type</label>
-                  <select 
+                  <select
                     className="w-full bg-[#2D6A4F] text-white rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-[#95D5B2]"
                     defaultValue={selectedExperience?.locationType || ""}
                   >
@@ -946,16 +991,16 @@ export default function Home() {
                     <option value="Remote">Remote</option>
                   </select>
                 </div>
-                
+
                 <div>
                   <label className="block text-[#95D5B2] text-sm mb-1">Description</label>
-                  <textarea 
+                  <textarea
                     className="w-full bg-[#2D6A4F] text-white rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-[#95D5B2] min-h-[100px]"
                     defaultValue={selectedExperience?.description || ""}
                     placeholder="Describe your responsibilities, achievements, and the skills you utilized in this role."
                   ></textarea>
                 </div>
-                
+
                 <div className="flex justify-end space-x-3 pt-2">
                   <motion.button
                     type="button"
@@ -985,33 +1030,33 @@ export default function Home() {
 
   const formatDateForInput = (dateString: string | null | undefined): string => {
     if (!dateString) return '';
-    
+
     // Check if it's already in YYYY-MM-DD format
     if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) return dateString;
-    
+
     // Convert from MM/DD/YYYY to YYYY-MM-DD
     const parts = dateString.split('/');
     if (parts.length === 3) {
       const [month, day, year] = parts;
-      return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+      return `${year} - ${month.padStart(2, '0')} - ${day.padStart(2, '0')}`;
     }
-    
+
     return '';
   };
 
   const certificationsSection = () => {
     const handleScanResults = (results: {
-      name: string, 
-      expirationDate: string, 
+      name: string,
+      expirationDate: string,
       issuingOrganization?: string,
       credentialId?: string,
       issueDate?: string
     }) => {
       console.log("Scan results:", results);
-      
+
       // Show loading state
       setAutoFillingFields(true);
-      
+
       // Use setTimeout to give a visual indication that something is happening
       setTimeout(() => {
         setFormData(prevData => ({
@@ -1022,7 +1067,7 @@ export default function Home() {
           credentialId: results.credentialId || prevData.credentialId,
           issueDate: formatDateForInput(results.issueDate) || prevData.issueDate,
         }));
-        
+
         // Hide loading state after data is updated
         setAutoFillingFields(false);
       }, 500); // Short delay to show loading animation
@@ -1050,12 +1095,12 @@ export default function Home() {
             onClick={handleAddNewCertification}
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 5v14M5 12h14"/>
+              <path d="M12 5v14M5 12h14" />
             </svg>
             Add Certification
           </motion.button>
         </motion.header>
-  
+
         {/* Main content area */}
         <motion.div
           className="p-6"
@@ -1075,7 +1120,8 @@ export default function Home() {
                   <div className="flex-1">
                     <div className="flex items-center flex-wrap gap-2">
                       <h2 className="text-white font-medium text-lg">{cert.name}</h2>
-                      <span className={`text-xs py-0.5 px-2 rounded-full ${getCertStatusColor(cert.status)}`}>
+                      <span className={`text - xs py - 0.5 px - 2 rounded - full ${getCertStatusColor(cert.status)
+                        }`}>
                         {cert.status === 'active' ? 'Active' : cert.status === 'expiring' ? 'Expiring Soon' : 'Expired'}
                       </span>
                     </div>
@@ -1102,9 +1148,9 @@ export default function Home() {
                         <FileText size={14} className="text-[#95D5B2] mr-2" />
                         <p className="text-[#95D5B2] text-sm">ID: {cert.credentialId}</p>
                         {cert.credentialURL && (
-                          <a 
-                            href={cert.credentialURL} 
-                            target="_blank" 
+                          <a
+                            href={cert.credentialURL}
+                            target="_blank"
                             rel="noopener noreferrer"
                             className="ml-2 text-[#95D5B2] underline text-xs hover:text-white"
                           >
@@ -1115,8 +1161,8 @@ export default function Home() {
                       {cert.skills.length > 0 && (
                         <div className="flex flex-wrap gap-1 mt-2">
                           {cert.skills.map((skill, index) => (
-                            <span 
-                              key={index} 
+                            <span
+                              key={index}
                               className="bg-[#2D6A4F] text-[#95D5B2] text-xs py-0.5 px-2 rounded-full"
                             >
                               {skill}
@@ -1155,196 +1201,196 @@ export default function Home() {
             ))}
           </div>
         </motion.div>
-  
+
         {/* Certification Form Modal */}
         {isCertModalOpen && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <motion.div 
-              className="bg-[#1B4332] rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto custom-scrollbar"  
+            <motion.div
+              className="bg-[#1B4332] rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto custom-scrollbar"
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ type: "spring", stiffness: 300 }}
             >
               <div className="p-6 border-b border-[#2D6A4F] sticky top-0 bg-[#1B4332] z-10">
-        <h2 className="text-white text-xl font-medium">
-          {selectedCertification ? "Edit Certification" : "Add New Certification"}
-        </h2>
-      </div>
-      <div className="flex-1 overflow-y-auto custom-scrollbar p-6 pt-4">
+                <h2 className="text-white text-xl font-medium">
+                  {selectedCertification ? "Edit Certification" : "Add New Certification"}
+                </h2>
+              </div>
+              <div className="flex-1 overflow-y-auto custom-scrollbar p-6 pt-4">
 
-      <CertificationScanner 
-                onResultsChange={handleScanResults}
-                showPreview={true}
-                className="mb-6"
-              />
+                <CertificationScanner
+                  onResultsChange={handleScanResults}
+                  showPreview={true}
+                  className="mb-6"
+                />
 
-{autoFillingFields && (
-  <div className="bg-[#2D6A4F] text-[#95D5B2] text-sm p-2 rounded-md mb-4 flex items-center">
-    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#95D5B2] mr-2"></div>
-    <span>Auto-filling certificate details...</span>
-  </div>
-)}
+                {autoFillingFields && (
+                  <div className="bg-[#2D6A4F] text-[#95D5B2] text-sm p-2 rounded-md mb-4 flex items-center">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#95D5B2] mr-2"></div>
+                    <span>Auto-filling certificate details...</span>
+                  </div>
+                )}
 
-              <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-                  <div className="md:col-span-2">
-                    {/* Certificate Image Upload */}
-                  
+                <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                    <div className="md:col-span-2">
+                      {/* Certificate Image Upload */}
+
+                      <div>
+                        <label className="block text-[#95D5B2] text-sm mb-1">Certificate Name</label>
+                        <input
+                          type="text"
+                          className="w-full bg-[#2D6A4F] text-white rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-[#95D5B2]"
+                          value={formData.name || selectedCertification?.name || ""}
+                          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        />
+                        {autoFillingFields && (
+                          <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#95D5B2]"></div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
                     <div>
-                      <label className="block text-[#95D5B2] text-sm mb-1">Certificate Name</label>
-                      <input 
-                        type="text" 
+                      <label className="block text-[#95D5B2] text-sm mb-1">Issuing Organization</label>
+                      <input
+                        type="text"
                         className="w-full bg-[#2D6A4F] text-white rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-[#95D5B2]"
-                        value={formData.name || selectedCertification?.name || ""}
-                        onChange={(e) => setFormData({...formData, name: e.target.value})}
+                        value={formData.issuingOrganization || selectedCertification?.issuingOrganization || ""}
+                        onChange={(e) => setFormData({ ...formData, issuingOrganization: e.target.value })}
                       />
                       {autoFillingFields && (
-                      <div className="absolute right-2 top-1/2 -translate-y-1/2">
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#95D5B2]"></div>
-                      </div>
-                    )}
+                        <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#95D5B2]"></div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="block text-[#95D5B2] text-sm mb-1">Type/Level</label>
+                      <select
+                        className="w-full bg-[#2D6A4F] text-white rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-[#95D5B2]"
+                        defaultValue={selectedCertification?.certificationType || ""}
+                      >
+                        <option value="">Select type</option>
+                        <option value="Associate">Associate</option>
+                        <option value="Professional">Professional</option>
+                        <option value="Expert">Expert</option>
+                        <option value="Security">Security</option>
+                        <option value="Developer">Developer</option>
+                        <option value="Administrator">Administrator</option>
+                        <option value="Architect">Architect</option>
+                        <option value="Specialty">Specialty</option>
+                        <option value="Fundamental">Fundamental</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-[#95D5B2] text-sm mb-1">Issue Date</label>
+                      <input
+                        type="date"
+                        className="w-full bg-[#2D6A4F] text-white rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-[#95D5B2]"
+                        value={formData.issueDate || selectedCertification?.issueDate || ""}
+                        onChange={(e) => setFormData({ ...formData, issueDate: e.target.value })}
+
+                      />
+                      {autoFillingFields && (
+                        <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#95D5B2]"></div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="block text-[#95D5B2] text-sm mb-1">Expiration Date</label>
+                      <input
+                        type="date"
+                        className="w-full bg-[#2D6A4F] text-white rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-[#95D5B2]"
+                        value={formData.expirationDate || selectedCertification?.expirationDate || ""}
+                        onChange={(e) => setFormData({ ...formData, expirationDate: e.target.value })}
+                      />
+                      {autoFillingFields && (
+                        <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#95D5B2]"></div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="block text-[#95D5B2] text-sm mb-1">Credential ID</label>
+                      <input
+                        type="text"
+                        className="w-full bg-[#2D6A4F] text-white rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-[#95D5B2]"
+                        defaultValue={selectedCertification?.credentialId || ""}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[#95D5B2] text-sm mb-1">Verification URL (optional)</label>
+                      <input
+                        type="url"
+                        className="w-full bg-[#2D6A4F] text-white rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-[#95D5B2]"
+                        defaultValue={selectedCertification?.credentialURL || ""}
+                        placeholder="https://..."
+                      />
+                    </div>
+
+                    <div className="md:col-span-2">
+                      <label className="block text-[#95D5B2] text-sm mb-1">Skills (comma separated)</label>
+                      <input
+                        type="text"
+                        className="w-full bg-[#2D6A4F] text-white rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-[#95D5B2]"
+                        defaultValue={selectedCertification?.skills.join(", ") || ""}
+                        placeholder="Cloud Computing, Security, DevOps"
+                      />
+                    </div>
+
+                    <div className="md:col-span-2">
+                      <label className="block text-[#95D5B2] text-sm mb-1">Description</label>
+                      <textarea
+                        className="w-full bg-[#2D6A4F] text-white rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-[#95D5B2] min-h-[80px]"
+                        defaultValue={selectedCertification?.description || ""}
+                        placeholder="Describe what this certification covers and its significance."
+                      ></textarea>
                     </div>
                   </div>
-                  
-                  <div>
-                    <label className="block text-[#95D5B2] text-sm mb-1">Issuing Organization</label>
-                    <input 
-                      type="text" 
-                      className="w-full bg-[#2D6A4F] text-white rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-[#95D5B2]"
-                      value={formData.issuingOrganization || selectedCertification?.issuingOrganization || ""}
-                      onChange={(e) => setFormData({...formData, issuingOrganization: e.target.value})}
-                    />
-                    {autoFillingFields && (
-                      <div className="absolute right-2 top-1/2 -translate-y-1/2">
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#95D5B2]"></div>
-                      </div>
-                    )}
-                  </div>
-                  
-                  <div>
-                    <label className="block text-[#95D5B2] text-sm mb-1">Type/Level</label>
-                    <select 
-                      className="w-full bg-[#2D6A4F] text-white rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-[#95D5B2]"
-                      defaultValue={selectedCertification?.certificationType || ""}
+
+                  <div className="flex justify-end space-x-3 pt-4">
+                    <motion.button
+                      type="button"
+                      className="bg-[#081C15] text-white px-4 py-2 rounded-md"
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={closeCertModal}
                     >
-                      <option value="">Select type</option>
-                      <option value="Associate">Associate</option>
-                      <option value="Professional">Professional</option>
-                      <option value="Expert">Expert</option>
-                      <option value="Security">Security</option>
-                      <option value="Developer">Developer</option>
-                      <option value="Administrator">Administrator</option>
-                      <option value="Architect">Architect</option>
-                      <option value="Specialty">Specialty</option>
-                      <option value="Fundamental">Fundamental</option>
-                    </select>
+                      Cancel
+                    </motion.button>
+                    <motion.button
+                      type="submit"
+                      className="bg-[#95D5B2] text-[#081C15] px-4 py-2 rounded-md font-medium"
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      Save
+                    </motion.button>
                   </div>
-                  
-                  <div>
-                    <label className="block text-[#95D5B2] text-sm mb-1">Issue Date</label>
-                    <input 
-                      type="date" 
-                      className="w-full bg-[#2D6A4F] text-white rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-[#95D5B2]"
-                      value={formData.issueDate || selectedCertification?.issueDate || ""}
-                      onChange={(e) => setFormData({...formData, issueDate: e.target.value})}
-                      
-                    />
-                    {autoFillingFields && (
-                    <div className="absolute right-2 top-1/2 -translate-y-1/2">
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#95D5B2]"></div>
-                    </div>
-                  )}
-                  </div>
-                  
-                  <div>
-                    <label className="block text-[#95D5B2] text-sm mb-1">Expiration Date</label>
-                    <input 
-                      type="date" 
-                      className="w-full bg-[#2D6A4F] text-white rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-[#95D5B2]"
-                      value={formData.expirationDate || selectedCertification?.expirationDate || ""}
-                      onChange={(e) => setFormData({...formData, expirationDate: e.target.value})}
-                    />
-                    {autoFillingFields && (
-                      <div className="absolute right-2 top-1/2 -translate-y-1/2">
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#95D5B2]"></div>
-                      </div>
-                    )}
-                  </div>
-                  
-                  <div>
-                    <label className="block text-[#95D5B2] text-sm mb-1">Credential ID</label>
-                    <input 
-                      type="text" 
-                      className="w-full bg-[#2D6A4F] text-white rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-[#95D5B2]"
-                      defaultValue={selectedCertification?.credentialId || ""}
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-[#95D5B2] text-sm mb-1">Verification URL (optional)</label>
-                    <input 
-                      type="url" 
-                      className="w-full bg-[#2D6A4F] text-white rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-[#95D5B2]"
-                      defaultValue={selectedCertification?.credentialURL || ""}
-                      placeholder="https://..."
-                    />
-                  </div>
-                  
-                  <div className="md:col-span-2">
-                    <label className="block text-[#95D5B2] text-sm mb-1">Skills (comma separated)</label>
-                    <input 
-                      type="text" 
-                      className="w-full bg-[#2D6A4F] text-white rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-[#95D5B2]"
-                      defaultValue={selectedCertification?.skills.join(", ") || ""}
-                      placeholder="Cloud Computing, Security, DevOps"
-                    />
-                  </div>
-                  
-                  <div className="md:col-span-2">
-                    <label className="block text-[#95D5B2] text-sm mb-1">Description</label>
-                    <textarea 
-                      className="w-full bg-[#2D6A4F] text-white rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-[#95D5B2] min-h-[80px]"
-                      defaultValue={selectedCertification?.description || ""}
-                      placeholder="Describe what this certification covers and its significance."
-                    ></textarea>
-                  </div>
-                </div>
-                
-                <div className="flex justify-end space-x-3 pt-4">
-                  <motion.button
-                    type="button"
-                    className="bg-[#081C15] text-white px-4 py-2 rounded-md"
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={closeCertModal}
-                  >
-                    Cancel
-                  </motion.button>
-                  <motion.button
-                    type="submit"
-                    className="bg-[#95D5B2] text-[#081C15] px-4 py-2 rounded-md font-medium"
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    Save
-                  </motion.button>
-                </div>
-              </form>
+                </form>
               </div>
 
             </motion.div>
           </div>
 
-          
-          
+
+
         )}
       </>
 
-      
+
     );
   };
-  
-  
+
+
 
   const display = () => {
     switch (showDisplay) {
@@ -1399,9 +1445,9 @@ export default function Home() {
               >
                 <button
                   onClick={() => setshowDisplay(button.value)}
-                  className={`cursor-pointer flex items-center w-full px-4 py-2.5 rounded-md text-sm
-  ${showDisplay === button.value ? "bg-[#1B4332] text-[#95D5B2]" : "text-white hover:bg-[#1B4332] hover:text-[#95D5B2]"} 
-  transition-colors duration-200`}
+                  className={`cursor - pointer flex items - center w - full px - 4 py - 2.5 rounded - md text - sm
+  ${showDisplay === button.value ? "bg-[#1B4332] text-[#95D5B2]" : "text-white hover:bg-[#1B4332] hover:text-[#95D5B2]"}
+      transition - colors duration - 200`}
                 >
                   <motion.span className="mr-3" whileHover={{ scale: 1.1 }}>
                     {button.icon}
