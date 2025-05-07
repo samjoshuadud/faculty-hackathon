@@ -142,6 +142,92 @@ const [educationToDelete, setEducationToDelete] = useState<Education | null>(nul
 const [isDeleting, setIsDeleting] = useState(false);
 const [documentsData, setDocumentsData] = useState<Document[]>([]);
 
+// First, add these state variables at the top of your component with other state declarations
+const [isExperienceDeleteModalOpen, setIsExperienceDeleteModalOpen] = useState(false);
+const [experienceToDelete, setExperienceToDelete] = useState<Experience | null>(null);
+const [isDeletingExperience, setIsDeletingExperience] = useState(false);
+
+// First, add these state variables at the top of your component with other state declarations
+const [isCertDeleteModalOpen, setIsCertDeleteModalOpen] = useState(false);
+const [certificationToDelete, setCertificationToDelete] = useState<Certification | null>(null);
+const [isDeletingCertification, setIsDeletingCertification] = useState(false);
+
+// Then add these handler functions
+const handleDeleteCertification = (certification: Certification) => {
+  setCertificationToDelete(certification);
+  setIsCertDeleteModalOpen(true);
+};
+
+const closeCertDeleteModal = () => {
+  setIsCertDeleteModalOpen(false);
+  setCertificationToDelete(null);
+};
+
+const confirmDeleteCertification = async () => {
+  if (!certificationToDelete) return;
+  
+  setIsDeletingCertification(true);
+  
+  try {
+    // Get current data
+    const currentData = getFromStorage(localStorageKeys.certifications, []);
+    
+    // Filter out the item to delete
+    const updatedData = currentData.filter(cert => cert._id !== certificationToDelete._id);
+    
+    // Save to localStorage
+    saveToStorage(localStorageKeys.certifications, updatedData);
+    
+    // Update state
+    setCertificationsData(prevData => prevData.filter(cert => cert.id !== certificationToDelete.id));
+    
+    closeCertDeleteModal();
+  } catch (error) {
+    console.error("Error deleting certification:", error);
+  } finally {
+    setIsDeletingCertification(false);
+  }
+};
+
+// Then add these handler functions
+const handleDeleteExperience = (experience: Experience) => {
+  setExperienceToDelete(experience);
+  setIsExperienceDeleteModalOpen(true);
+};
+
+const closeExperienceDeleteModal = () => {
+  setIsExperienceDeleteModalOpen(false);
+  setExperienceToDelete(null);
+};
+
+const confirmDeleteExperience = async () => {
+  if (!experienceToDelete) return;
+  
+  setIsDeletingExperience(true);
+  
+  try {
+    // Get current data
+    const currentData = getFromStorage(localStorageKeys.experience, []);
+    
+    // Filter out the item to delete
+    const updatedData = currentData.filter(exp => exp._id !== experienceToDelete._id);
+    
+    // Save to localStorage
+    saveToStorage(localStorageKeys.experience, updatedData);
+    
+    // Update state
+    setExperiencesData(prevData => prevData.filter(exp => exp.id !== experienceToDelete.id));
+    
+    closeExperienceDeleteModal();
+  } catch (error) {
+    console.error("Error deleting experience:", error);
+  } finally {
+    setIsDeletingExperience(false);
+  }
+};
+
+
+
 
 // Add these helper functions at the top of your file, after imports:
 
@@ -2858,60 +2944,73 @@ const handleDocumentSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         >
           <div className="grid grid-cols-1 gap-6">
             {experiencesData.map((experience, index) => (
-              <motion.div
-                key={index}
-                className="bg-[#1B4332] rounded-lg p-5 shadow-sm"
-                variants={itemVariants}
-                whileHover={{ boxShadow: "0 4px 20px rgba(149, 213, 178, 0.1)" }}
-              >
-                <div className="flex justify-between items-start">
-                  <div>
-                    <div className="flex items-center">
-                      <h2 className="text-white font-medium text-lg">{experience.title}</h2>
-                      {experience.isCurrentRole && (
-                        <span className="ml-3 text-xs bg-[#2D6A4F] text-[#95D5B2] py-0.5 px-2 rounded-full">
-                          Current
-                        </span>
-                      )}
-                    </div>
-                    <div className="mt-2 space-y-2">
-                      <div className="flex items-center">
-                        <Briefcase size={14} className="text-[#95D5B2] mr-2" />
-                        <p className="text-[#95D5B2] text-sm">{experience.company}</p>
-                        <span className="mx-2 text-[#95D5B2] text-xs">•</span>
-                        <p className="text-[#95D5B2] text-sm">{experience.employmentType}</p>
-                      </div>
-                      <div className="flex items-center">
-                        <CalendarSearch size={14} className="text-[#95D5B2] mr-2" />
-                        <p className="text-[#95D5B2] text-sm">
-                          {experience.startDate} - {experience.endDate || 'Present'}
-                        </p>
-                      </div>
-                      <div className="flex items-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[#95D5B2] mr-2">
-                          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                          <circle cx="12" cy="10" r="3"></circle>
-                        </svg>
-                        <p className="text-[#95D5B2] text-sm">{experience.location}</p>
-                        <span className="mx-2 text-[#95D5B2] text-xs">•</span>
-                        <p className="text-[#95D5B2] text-sm">{experience.locationType}</p>
-                      </div>
-                    </div>
-                    <p className="mt-3 text-white text-sm">{experience.description}</p>
-                  </div>
-                  <motion.button
-                    className="bg-[#2D6A4F] hover:bg-[#3B8F6F] text-white p-2 rounded-md"
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => handleEditExperience(experience)}
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path>
-                      <path d="m15 5 4 4"></path>
-                    </svg>
-                  </motion.button>
-                </div>
-              </motion.div>
+              // In the experiencesSection component, update the experience card UI:
+<motion.div
+  key={index}
+  className="bg-[#1B4332] rounded-lg p-5 shadow-sm"
+  variants={itemVariants}
+  whileHover={{ boxShadow: "0 4px 20px rgba(149, 213, 178, 0.1)" }}
+>
+  <div className="flex justify-between items-start">
+    <div>
+      <div className="flex items-center">
+        <h2 className="text-white font-medium text-lg">{experience.title}</h2>
+        {experience.isCurrentRole && (
+          <span className="ml-3 text-xs bg-[#2D6A4F] text-[#95D5B2] py-0.5 px-2 rounded-full">
+            Current
+          </span>
+        )}
+      </div>
+      <div className="mt-2 space-y-2">
+        <div className="flex items-center">
+          <Briefcase size={14} className="text-[#95D5B2] mr-2" />
+          <p className="text-[#95D5B2] text-sm">{experience.company}</p>
+          <span className="mx-2 text-[#95D5B2] text-xs">•</span>
+          <p className="text-[#95D5B2] text-sm">{experience.employmentType}</p>
+        </div>
+        <div className="flex items-center">
+          <CalendarSearch size={14} className="text-[#95D5B2] mr-2" />
+          <p className="text-[#95D5B2] text-sm">
+            {experience.startDate} - {experience.endDate || 'Present'}
+          </p>
+        </div>
+        <div className="flex items-center">
+          {/* Location details if available */}
+        </div>
+      </div>
+      <p className="mt-3 text-white text-sm">{experience.description}</p>
+    </div>
+    <div className="flex space-x-2">
+      <motion.button
+        className="bg-[#2D6A4F] hover:bg-[#3B8F6F] text-white p-2 rounded-md"
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+        onClick={() => handleEditExperience(experience)}
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path>
+          <path d="m15 5 4 4"></path>
+        </svg>
+      </motion.button>
+      
+      {/* Delete Button */}
+      <motion.button
+        className="bg-[#8B0000] hover:bg-[#A52A2A] text-white p-2 rounded-md"
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+        onClick={() => handleDeleteExperience(experience)}
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M3 6h18"></path>
+          <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+          <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+          <line x1="10" y1="11" x2="10" y2="17"></line>
+          <line x1="14" y1="11" x2="14" y2="17"></line>
+        </svg>
+      </motion.button>
+    </div>
+  </div>
+</motion.div>
             ))}
           </div>
         </motion.div>
@@ -3058,6 +3157,55 @@ const handleDocumentSubmit = (e: React.FormEvent<HTMLFormElement>) => {
           </div >
         )
         }
+
+{/* Delete Confirmation Modal */}
+{isExperienceDeleteModalOpen && experienceToDelete && (
+  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <motion.div
+      className="bg-[#1B4332] rounded-lg p-6 w-full max-w-md"
+      initial={{ scale: 0.9, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
+      transition={{ type: "spring", stiffness: 300 }}
+    >
+      <h2 className="text-white text-xl font-medium mb-4">Confirm Deletion</h2>
+      
+      <p className="text-[#95D5B2] mb-6">
+        Are you sure you want to delete "{experienceToDelete.title}" at {experienceToDelete.company}? 
+        This action cannot be undone.
+      </p>
+      
+      <div className="flex justify-end space-x-3 pt-2">
+        <motion.button
+          type="button"
+          className="bg-[#081C15] text-white px-4 py-2 rounded-md"
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={closeExperienceDeleteModal}
+          disabled={isDeletingExperience}
+        >
+          Cancel
+        </motion.button>
+        <motion.button
+          type="button"
+          className="bg-[#8B0000] text-white px-4 py-2 rounded-md font-medium flex items-center"
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={confirmDeleteExperience}
+          disabled={isDeletingExperience}
+        >
+          {isDeletingExperience ? (
+            <>
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+              <span>Deleting...</span>
+            </>
+          ) : (
+            <span>Delete</span>
+          )}
+        </motion.button>
+      </div>
+    </motion.div>
+  </div>
+)}
       </>
     );
   };
@@ -3144,94 +3292,60 @@ const handleDocumentSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         >
           <div className="grid grid-cols-1 gap-6">
             {certificationsData.map((cert, index) => (
-              <motion.div
-                key={cert._id}
-                className="bg-[#1B4332] rounded-lg p-5 shadow-sm"
-                variants={itemVariants}
-                whileHover={{ boxShadow: "0 4px 20px rgba(149, 213, 178, 0.1)" }}
-              >
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <div className="flex items-center flex-wrap gap-2">
-                      <h2 className="text-white font-medium text-lg">{cert.name}</h2>
-                      <span className={`text-xs py-0.5 px-2 rounded-full ${getCertStatusColor(cert.status)
-                        }`}>
-                        {cert.status === 'active' ? 'Active' : cert.status === 'expiring' ? 'Expiring Soon' : 'Expired'}
-                      </span>
-                    </div>
-                    <div className="mt-2 space-y-2">
-                      <div className="flex items-center">
-                        <Award size={14} className="text-[#95D5B2] mr-2" />
-                        <p className="text-[#95D5B2] text-sm">{cert.issuingOrganization}</p>
-                        <span className="mx-2 text-[#95D5B2] text-xs">•</span>
-                        <p className="text-[#95D5B2] text-sm">{cert.certificationType}</p>
-                      </div>
-                      <div className="flex items-center">
-                        <CalendarSearch size={14} className="text-[#95D5B2] mr-2" />
-                        <p className="text-[#95D5B2] text-sm">
-                          Issued: {new Date(cert.issueDate).toLocaleDateString()}
-                          {cert.expirationDate && (
-                            <>
-                              <span className="mx-1">•</span>
-                              Expires: {new Date(cert.expirationDate).toLocaleDateString()}
-                            </>
-                          )}
-                        </p>
-                      </div>
-                      <div className="flex items-center">
-                        <FileText size={14} className="text-[#95D5B2] mr-2" />
-                        <p className="text-[#95D5B2] text-sm">ID: {cert.credentialId}</p>
-                        {cert.credentialURL && (
-                          <a
-                            href={cert.credentialURL}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="ml-2 text-[#95D5B2] underline text-xs hover:text-white"
-                          >
-                            Verify
-                          </a>
-                        )}
-                      </div>
-                      {cert?.skills?.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mt-2">
-                          {cert?.skills.map((skill, index) => (
-                            <span
-                              key={index}
-                              className="bg-[#2D6A4F] text-[#95D5B2] text-xs py-0.5 px-2 rounded-full"
-                            >
-                              {skill}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                    <p className="mt-3 text-white text-sm">{cert.description}</p>
-                  </div>
-                  {cert.imageUrl && (
-                    <div className="ml-4 mb-auto">
-                      <div className="h-16 w-16 bg-[#2D6A4F] rounded-md overflow-hidden flex items-center justify-center">
-                        <motion.img
-                          src={cert.imageUrl}
-                          alt={cert.name}
-                          className="max-h-full max-w-full object-contain"
-                          whileHover={{ scale: 1.1 }}
-                        />
-                      </div>
-                    </div>
-                  )}
-                  <motion.button
-                    className="bg-[#2D6A4F] hover:bg-[#3B8F6F] text-white p-2 rounded-md ml-4"
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => handleEditCertification(cert)}
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path>
-                      <path d="m15 5 4 4"></path>
-                    </svg>
-                  </motion.button>
-                </div>
-              </motion.div>
+              // In the certificationsSection function, update the certification card UI:
+<motion.div
+  key={index}
+  className="bg-[#1B4332] rounded-lg p-5 shadow-sm"
+  variants={itemVariants}
+  whileHover={{ boxShadow: "0 4px 20px rgba(149, 213, 178, 0.1)" }}
+>
+  <div className="flex justify-between items-start">
+    <div className="flex-1">
+      {/* Existing content */}
+    </div>
+    {cert.imageUrl && (
+      <div className="ml-4 mb-auto">
+        <div className="h-16 w-16 bg-[#2D6A4F] rounded-md overflow-hidden flex items-center justify-center">
+          <motion.img
+            src={cert.imageUrl}
+            alt={cert.name}
+            className="max-h-full max-w-full object-contain"
+            whileHover={{ scale: 1.1 }}
+          />
+        </div>
+      </div>
+    )}
+    <div className="flex ml-4">
+      <motion.button
+        className="bg-[#2D6A4F] hover:bg-[#3B8F6F] text-white p-2 rounded-md mr-2"
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+        onClick={() => handleEditCertification(cert)}
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path>
+          <path d="m15 5 4 4"></path>
+        </svg>
+      </motion.button>
+      
+      {/* Delete Button */}
+      <motion.button
+        className="bg-[#8B0000] hover:bg-[#A52A2A] text-white p-2 rounded-md"
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+        onClick={() => handleDeleteCertification(cert)}
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M3 6h18"></path>
+          <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+          <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+          <line x1="10" y1="11" x2="10" y2="17"></line>
+          <line x1="14" y1="11" x2="14" y2="17"></line>
+        </svg>
+      </motion.button>
+    </div>
+  </div>
+</motion.div>
             ))}
           </div>
         </motion.div>
@@ -3427,6 +3541,56 @@ const handleDocumentSubmit = (e: React.FormEvent<HTMLFormElement>) => {
 
 
         )}
+
+
+{/* Delete Confirmation Modal */}
+{isCertDeleteModalOpen && certificationToDelete && (
+  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <motion.div
+      className="bg-[#1B4332] rounded-lg p-6 w-full max-w-md"
+      initial={{ scale: 0.9, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
+      transition={{ type: "spring", stiffness: 300 }}
+    >
+      <h2 className="text-white text-xl font-medium mb-4">Confirm Deletion</h2>
+      
+      <p className="text-[#95D5B2] mb-6">
+        Are you sure you want to delete "{certificationToDelete.name}" from {certificationToDelete.issuingOrganization}? 
+        This action cannot be undone.
+      </p>
+      
+      <div className="flex justify-end space-x-3 pt-2">
+        <motion.button
+          type="button"
+          className="bg-[#081C15] text-white px-4 py-2 rounded-md"
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={closeCertDeleteModal}
+          disabled={isDeletingCertification}
+        >
+          Cancel
+        </motion.button>
+        <motion.button
+          type="button"
+          className="bg-[#8B0000] text-white px-4 py-2 rounded-md font-medium flex items-center"
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={confirmDeleteCertification}
+          disabled={isDeletingCertification}
+        >
+          {isDeletingCertification ? (
+            <>
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+              <span>Deleting...</span>
+            </>
+          ) : (
+            <span>Delete</span>
+          )}
+        </motion.button>
+      </div>
+    </motion.div>
+  </div>
+)}
       </>
 
 
