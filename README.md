@@ -67,5 +67,3 @@ A centralized platform that enables CCIS faculty to manage their academic profil
     ```
 5.  Open [http://localhost:3000](http://localhost:3000) in your browser to see the result.
 
-#### Deployment
-The easiest way to deploy a Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme). For more details, refer to the [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying).
